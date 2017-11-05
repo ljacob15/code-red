@@ -39,6 +39,7 @@ def index():
 def message_received():
     """Reply to a user via SMS."""
     from_number = flask.request.values.get('From', None)
+    print(from_number)
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
     #userMsg = client.messages()
@@ -49,7 +50,7 @@ def message_received():
 
     connection = sql.connect()
 
-    if sql.process(str(from_number), connection):
+    if sql.process(str(number), connection):
         if 'credentials' not in flask.session:
             return flask.redirect('authorize')
 
