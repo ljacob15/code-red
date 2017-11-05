@@ -68,7 +68,7 @@ def get_token(number):
 
 
 def main(number):
-    if process_number(number):
+    if process(number):
         print("New user! Proceed to authentication.")
         # EXECUTE AUTHENTICATION
         # token = prompt_for_authentication()
@@ -79,7 +79,8 @@ def main(number):
         #create user profile in database
         add_new_user = ("INSERT INTO mainData VALUES (%s, %s, %s)")
 
-        cursor.execute(add_new_user, (number, token, key)
+        cursor.execute(add_new_user, (number, token, key))
+        
     else:
         tries = 5
         while (tries > 0):
