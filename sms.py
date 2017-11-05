@@ -40,16 +40,45 @@ def message_received():
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
     #userMsg = client.messages()
-    """number = request.form['From']
+    number = request.form['From']
     message_body = request.form['Body']
 
     if (message_body.contains("Search")):
+        if 'credentials' not in flask.session:
+            return flask.redirect('authorize')
+
+        # Load credentials from the session.
+        credentials = google.oauth2.credentials.Credentials(
+            **flask.session['credentials'])
+
+        people = googleapiclient.discovery.build(
+            API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+        # Save credentials back to session in case access token was refreshed.
+        # ACTION ITEM: In a production app, you likely want to save these
+        #              credentials in a persistent database instead.
+        flask.session['credentials'] = credentials_to_dict(credentials)
+
+        results = people.people().connections().list(
+            resourceName='people/me',
+            **{"requestMask_includeField": (
+               "person.phoneNumbers,person.names")}).execute()
+
         words = split(message_body)
         query = words[1]
-        phone_number = test_api_request(query)
+
+        total = results['totalPeople']
+
+        for i in range(0, total):
+            name = results['connections'][i]
+            if query == name['names'][0]['displayName']:
+                phone = results['connections'][i]
+                number = phone['phoneNumbers'][0]['value']
+                break
+        phone_number = number
         resp = twiml.Response()
         resp.message(phone_number)
-        return str(resp)"""
+        return str(resp)
 
     resp = MessagingResponse()
     message = ("Please click the link below: http://f49ada64.ngrok.io/authorize")
