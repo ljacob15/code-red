@@ -69,9 +69,19 @@ def test_api_request():
         resourceName='people/me',
         **{"requestMask_includeField": (
             "person.phoneNumbers,person.names")}).execute()
-    print(results)
+
+    query = "Andi"
+
+    total = results['totalPeople']
+
+    for i in range(0, total):
+        name = results['connections'][i]
+        if query == name['names'][0]['displayName']:
+            phone = results['connections'][i]
+            print(phone['phoneNumbers'][0]['value'])
 
     return ""
+
 
 @app.route('/authorize')
 def authorize():
