@@ -40,10 +40,12 @@ def message_received():
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
     #userMsg = client.messages()
-    number = request.form['From']
+    #number = request.form['From']
     message_body = request.form['Body']
+    words = split(message_body)
+    number = words[0]
 
-    if (message_body.contains("Search")):
+    if (message_body.contains(number)):
         if 'credentials' not in flask.session:
             return flask.redirect('authorize')
 
@@ -64,8 +66,11 @@ def message_received():
             **{"requestMask_includeField": (
                "person.phoneNumbers,person.names")}).execute()
 
-        words = split(message_body)
-        query = words[1]
+        #words = split(message_body)
+        if len(query) == 3:
+            query = str(words[1]) + " " + str(words[2])
+        else:
+            query = str(words[1])
 
         total = results['totalPeople']
 
