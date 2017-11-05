@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+"""Handles SMS messages to and from users."""
 
 import os
 import flask
@@ -34,18 +34,21 @@ def index():
 
 @app.route("/", methods=['GET', 'POST'])
 def message_received():
-    # from_number = request.values.get('From', None)
+    """Reply to a user via SMS."""
+    #from_number = request.values.get('From', None)
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
 
     resp = MessagingResponse()
-    message = ("Please click the link below: http://c100491e.ngrok.io/authorize")
+    message = ("Please click the link below: http://f49ada64.ngrok.io/authorize")
     resp.message(message)
 
     return str(resp)
 
 @app.route('/test')
 def test_api_request():
+    """Future authentication success page."""
+
     if 'credentials' not in flask.session:
         return flask.redirect('authorize')
 
@@ -61,13 +64,18 @@ def test_api_request():
     #              credentials in a persistent database instead.
     flask.session['credentials'] = credentials_to_dict(credentials)
 
-    results = people.people().connections().list(resourceName = 'people/me', **{"requestMask_includeField": ("person.emailAddresses,person.names,person.photos")}).execute()
+    results = people.people().connections().list(
+        resourceName='people/me',
+        **{"requestMask_includeField": (
+            "person.emailAddresses,person.names,person.photos")}).execute()
     print(results)
 
     return ""
 
 @app.route('/authorize')
 def authorize():
+    """Authorization link."""
+
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -89,6 +97,8 @@ def authorize():
 
 @app.route('/oauth2callback')
 def oauth2callback():
+    """Obtain credentials."""
+
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
     state = flask.session['state']
@@ -112,26 +122,30 @@ def oauth2callback():
 
 @app.route('/revoke')
 def revoke():
+    """Revoke credentials."""
+
     if 'credentials' not in flask.session:
         return ('You need to <a href="/authorize">authorize</a> before ' +
-            'testing the code to revoke credentials.')
+                'testing the code to revoke credentials.')
 
     credentials = google.oauth2.credentials.Credentials(
-    **flask.session['credentials'])
+        **flask.session['credentials'])
 
-    revoke = requests.post('https://accounts.google.com/o/oauth2/revoke',
-        params={'token': credentials.token},
-        headers = {'content-type': 'application/x-www-form-urlencoded'})
+    response = requests.post('https://accounts.google.com/o/oauth2/revoke',
+                             params={'token': credentials.token},
+                             headers={'content-type': 'application/x-www-form-urlencoded'})
 
-    status_code = getattr(revoke, 'status_code')
+    status_code = getattr(response, 'status_code')
     if status_code == 200:
-        return('Credentials successfully revoked.' + print_index_table())
+        return 'Credentials successfully revoked.' + print_index_table()
     else:
-        return('An error occurred.' + print_index_table())
+        return 'An error occurred.' + print_index_table()
 
 
 @app.route('/clear')
 def clear_credentials():
+    """Delete credentials."""
+
     if 'credentials' in flask.session:
         del flask.session['credentials']
         return ('Credentials have been cleared.<br><br>' +
@@ -139,6 +153,8 @@ def clear_credentials():
 
 
 def credentials_to_dict(credentials):
+    """Convert credentials to dictionary format."""
+
     return {'token': credentials.token,
             'refresh_token': credentials.refresh_token,
             'token_uri': credentials.token_uri,
@@ -147,6 +163,8 @@ def credentials_to_dict(credentials):
             'scopes': credentials.scopes}
 
 def print_index_table():
+    """Testing page."""
+
     return ('<table>' +
             '<tr><td><a href="/test">Test an API request</a></td>' +
             '<td>Submit an API request and see a formatted JSON response. ' +
@@ -176,4 +194,4 @@ if __name__ == '__main__':
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('localhost', 5000, debug=True)
+    app.run('localhost', 8080, debug=True)
