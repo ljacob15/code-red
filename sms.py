@@ -51,6 +51,7 @@ def message_received():
     connection = sql.connect()
 
     if sql.process(str(number), connection):
+        """
         print("lol")
         if 'credentials' not in flask.session:
             # return flask.redirect('authorize')
@@ -93,7 +94,11 @@ def message_received():
         resp = MessagingResponse()
         resp.message(str(phone_number))
         return str(resp)
-
+        """
+        resp = MessagingResponse()
+        message = ("4693861646")
+        resp.message(message)
+        return str(resp)
     else: # New user
         resp = MessagingResponse()
         message = ("Welcome to Lost in Phone!"
