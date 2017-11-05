@@ -80,7 +80,6 @@ def main(number):
         add_new_user = ("INSERT INTO mainData VALUES (%s, %s, %s)")
 
         cursor.execute(add_new_user, (number, token, key)
-
     else:
         tries = 5
         while (tries > 0):
@@ -98,11 +97,13 @@ def main(number):
                 # PROMPT FOR CONTACT NAME
 
                 # DO SOMETHING WITH THE GOOGLE API
-
-
                 break
 
             else:
                 tries -= 1
                 print("Incorrect password; please try again.")
                 # REPROMPT FOR PASSWORD
+
+
+# main()
+process("2149309094")
