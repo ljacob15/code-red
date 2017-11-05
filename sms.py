@@ -5,7 +5,7 @@ import flask
 import requests
 
 from twilio.twiml.messaging_response import MessagingResponse
-
+from twilio.rest import Client
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -39,12 +39,26 @@ def message_received():
     #from_number = request.values.get('From', None)
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
+    #userMsg = client.messages()
+    """number = request.form['From']
+    message_body = request.form['Body']
+
+    if (message_body.contains("Search")):
+        words = split(message_body)
+        query = words[1]
+        phone_number = test_api_request(query)
+        resp = twiml.Response()
+        resp.message(phone_number)
+        return str(resp)"""
 
     resp = MessagingResponse()
     message = ("Please click the link below: http://f49ada64.ngrok.io/authorize")
     resp.message(message)
 
     return str(resp)
+
+
+
 
 @app.route('/test')
 def test_api_request():
@@ -78,9 +92,10 @@ def test_api_request():
         name = results['connections'][i]
         if query == name['names'][0]['displayName']:
             phone = results['connections'][i]
-            print(phone['phoneNumbers'][0]['value'])
+            number = phone['phoneNumbers'][0]['value']
+            break
 
-    return ""
+    return number
 
 
 @app.route('/authorize')
