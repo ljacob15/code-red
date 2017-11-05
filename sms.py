@@ -115,7 +115,7 @@ def test_api_request():
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
-
+    print("hi")
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -131,7 +131,7 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-
+    print("wait it got here")
     return flask.redirect(authorization_url)
 
 
