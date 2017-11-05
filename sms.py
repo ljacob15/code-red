@@ -52,20 +52,21 @@ def message_received():
 
     if sql.process(str(number), connection):
         print("lol")
-        #if 'credentials' not in flask.session:
-        #    return flask.redirect('authorize')
-        print("oh what")
-        # Load credentials from the session.
-        credentials = google.oauth2.credentials.Credentials(
-            **flask.session['credentials'])
+        if 'credentials' not in flask.session:
+            return flask.redirect('authorize')
+        else:
+            print("oh what")
+            # Load credentials from the session.
+            credentials = google.oauth2.credentials.Credentials(
+                **flask.session['credentials'])
 
-        people = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials)
+            people = googleapiclient.discovery.build(
+                API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
-        # Save credentials back to session in case access token was refreshed.
-        # ACTION ITEM: In a production app, you likely want to save these
-        #              credentials in a persistent database instead.
-        flask.session['credentials'] = credentials_to_dict(credentials)
+            # Save credentials back to session in case access token was refreshed.
+            # ACTION ITEM: In a production app, you likely want to save these
+            #              credentials in a persistent database instead.
+            flask.session['credentials'] = credentials_to_dict(credentials)
 
         results = people.people().connections().list(
             resourceName='people/me',
