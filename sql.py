@@ -1,7 +1,31 @@
-"""Connect to the database."""
+""" Process the user in the database """
 
 import mysql.connector
 from mysql.connector import errorcode
+import random as rand
+
+# database = "mainData"
+
+
+def process(number):
+    """
+    before this, get the user phone number, store it as a string,
+    and pass it into this function.
+    """
+    assert type(number) == str, "number must be a string"
+    connection = connect()
+    cursor = connection.cursor()
+
+    query = ("SELECT * FROM mainData"
+            "WHERE phoneNumber = %s")
+
+    cursor.execute(query, (number))
+
+    if cursor == []:
+        return(False) #user is not yet in database
+    else:
+        return(True) #user is already in database
+
 
 def connect():
     """Connect to the database. Returns connection object."""
@@ -19,5 +43,60 @@ def connect():
         else:
             print(err)
 
-def process_number():
-    cnx = connect()
+
+def main(number ):
+    if process_number(number):
+        print("New user! Proceed to authentication.")
+        # EXECUTE AUTHENTICATION
+        # token = prompt_for_authentication()
+
+        # REQUEST USER PRIVATE KEY
+        #key = request_user_private_key()
+
+        #create user profile in database
+        add_new_user = ("INSERT INTO mainData VALUES (%s, %s, %s)")
+
+        cursor.execute(add_new_user, (number, token, key)
+
+    else:
+        print("Welcome back! Here's a public key to combine with your function.")
+
+        # SEND THE PUBLIC KEY TO THE USER, PROMPT FOR PASSWORD
+
+        public_key = rand.randint(100, 999)
+
+        # password_attempt = get_passphrase()
+
+        if validate_passphrase(number, public_key, password_attempt):
+            print("Correct! Which contact's number would you like?")
+
+            # PROMPT FOR CONTACT NAME
+
+            # DO SOMETHING WITH THE GOOGLE API
+
+        else:
+            print("Incorrect password; please try again.")
+            # REPROMPT FOR PASSWORD
+
+
+def validate_passphrase(number, public_key, password_attempt):
+    query = ("SELECT security FROM mainData"
+            "WHERE phoneNumber = %s")
+
+    cursor.execute(query, (number))
+
+    private_key = cursor
+
+    if private_key * public_key == password_attempt:
+        return True
+    else:
+        return False
+
+
+def get_token(number):
+    query = ("SELECT token FROM mainData"
+            "WHERE phoneNumber = %s")
+
+    cursor.execute(query, (number))
+
+    return cursor
