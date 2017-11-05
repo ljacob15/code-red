@@ -59,15 +59,15 @@ def message_received():
         # Load credentials from the session.
         credentials = google.oauth2.credentials.Credentials(
             **flask.session['credentials'])
-
+        print("hmm")
         people = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
+        print("hmmm222")
         # Save credentials back to session in case access token was refreshed.
         # ACTION ITEM: In a production app, you likely want to save these
         #              credentials in a persistent database instead.
         flask.session['credentials'] = credentials_to_dict(credentials)
-
+        print("hmm333")
         results = people.people().connections().list(
             resourceName='people/me',
             **{"requestMask_includeField": (
