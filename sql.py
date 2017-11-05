@@ -41,7 +41,7 @@ def connect():
                        password='CodeRed#2017',
                        database='mydatabase',
                        host='129.158.66.189',
-                       cursorclass=pymysql.cursors.DictCursor)
+                       cursorclass=sql.cursors.DictCursor)
 
     # except mysql.connector.Error as err:
     #     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
