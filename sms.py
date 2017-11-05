@@ -68,7 +68,7 @@ def test_api_request():
     results = people.people().connections().list(
         resourceName='people/me',
         **{"requestMask_includeField": (
-            "person.emailAddresses,person.names,person.photos")}).execute()
+            "person.phoneNumbers,person.names")}).execute()
     print(results)
 
     return ""
