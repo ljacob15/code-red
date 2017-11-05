@@ -41,7 +41,9 @@ def message_received():
     # If not, add them and get contacts from them
 
     resp = MessagingResponse()
-    message = ("Please click the link below: http://f49ada64.ngrok.io/authorize")
+    message = ("Welcome to Lost in Phone!"
+               "Please click the link below to get started: "
+               "http://f49ada64.ngrok.io/authorize")
     resp.message(message)
 
     return str(resp)
