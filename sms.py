@@ -26,13 +26,14 @@ app = flask.Flask(__name__)
 # key. See http://flask.pocoo.org/docs/0.12/quickstart/#sessions.
 app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 
-"""
+
 @app.route('/')
 def index():
-    return print_index_table()
-"""
+    """Display testing page."""
 
-@app.route("/", methods=['GET', 'POST'])
+    return print_index_table()
+
+@app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
     #from_number = request.values.get('From', None)
