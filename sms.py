@@ -47,9 +47,9 @@ def message_received():
     words = message_body.split(" ")
     number = words[0]
 
-    
+    connection = sql.connect()
 
-    if sql.process(str(from_number)):
+    if sql.process(str(from_number), connection):
         if 'credentials' not in flask.session:
             return flask.redirect('authorize')
 
@@ -89,11 +89,14 @@ def message_received():
         resp.message(phone_number)
         return str(resp)
 
-    resp = MessagingResponse()
-    message = ("Welcome to Lost in Phone!"
-               "Please click the link below to get started: "
-               " http://cffabc37.ngrok.io/authorize")
-    resp.message(message)
+    else: # New user
+        resp = MessagingResponse()
+        message = ("Welcome to Lost in Phone!"
+                   "Please click the link below to get started: "
+                   " http://cffabc37.ngrok.io/authorize")
+        resp.message(message)
+
+        sql.add_user(from_number, connection)
 
     return str(resp)
 

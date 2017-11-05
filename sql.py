@@ -98,27 +98,27 @@ def validate_passphrase(number, public_key, password_attempt, connection):
             return False
 
 
-def process_new_user(number, connection):
+def add_user(number, connection):
     with connection.cursor() as cursor:
 
-        print("New user! Proceed to authentication.")
+        #print("New user! Proceed to authentication.")
         # EXECUTE AUTHENTICATION
         # token = prompt_for_authentication()
-        token = input("What is your gmail username?")
+        #token = input("What is your gmail username?")
 
 
         # REQUEST USER PRIVATE KEY
-        key = input("Enter your private key; do not share!")
+        #key = input("Enter your private key; do not share!")
 
-        number = "\'" + str(number) + "\'"
-        token = "\'" + str(token) + "\'"
-        key = int(key)
+        #number = "\'" + str(number) + "\'"
+        #token = "\'" + str(token) + "\'"
+        #key = int(key)
         # print(number)
         # print(token)
         # print(key)
 
         #create user profile in database
-        add = "INSERT INTO `mainData` VALUES ({}, {}, {})".format(number, token, key)
+        add = "INSERT INTO `mainData` VALUES ({}, {}, {})".format(number, 'abc', 17)
         cursor.execute(add)
         connection.commit()
 
