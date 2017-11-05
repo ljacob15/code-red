@@ -118,7 +118,7 @@ def add_user(number, connection):
         # print(key)
 
         #create user profile in database
-        add = "INSERT INTO `mainData` VALUES ({}, {}, {})".format(number, 'abc', 17)
+        add = "INSERT INTO `mainData` VALUES ({}, {}, {})".format(number, "'abc'", 17)
         cursor.execute(add)
         connection.commit()
 
