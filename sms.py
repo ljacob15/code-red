@@ -72,6 +72,7 @@ def message_received():
                "person.phoneNumbers,person.names")}).execute()
 
         #words = split(message_body)
+        print(words)
         if len(words) == 3:
             query = str(words[1]) + " " + str(words[2])
         else:
@@ -86,8 +87,9 @@ def message_received():
                 number = phone['phoneNumbers'][0]['value']
                 break
         phone_number = number
+        print(phone_number)
         resp = MessagingResponse()
-        resp.message(phone_number)
+        resp.message(str(phone_number))
         return str(resp)
 
     else: # New user
