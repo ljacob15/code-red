@@ -10,6 +10,8 @@ import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
+import sql.py
+
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
 CLIENT_SECRETS_FILE = "client_secret.json"
@@ -44,8 +46,10 @@ def message_received():
     message_body = flask.request.form['Body']
     words = message_body.split(" ")
     number = words[0]
-    '''
-   # if from_number in database:
+
+    
+
+    if sql.process(str(from_number)):
         if 'credentials' not in flask.session:
             return flask.redirect('authorize')
 
@@ -84,7 +88,7 @@ def message_received():
         resp = MessagingResponse()
         resp.message(phone_number)
         return str(resp)
-    '''
+
     resp = MessagingResponse()
     message = ("Welcome to Lost in Phone!"
                "Please click the link below to get started: "
