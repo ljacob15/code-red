@@ -5,7 +5,7 @@ import flask
 import requests
 
 from twilio.twiml.messaging_response import MessagingResponse
-
+from twilio.rest import Client
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -39,6 +39,51 @@ def message_received():
     #from_number = request.values.get('From', None)
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
+    #userMsg = client.messages()
+    #number = request.form['From']
+    message_body = request.form['Body']
+    words = split(message_body)
+    number = words[0]
+
+    if (message_body.contains(number)):
+        if 'credentials' not in flask.session:
+            return flask.redirect('authorize')
+
+        # Load credentials from the session.
+        credentials = google.oauth2.credentials.Credentials(
+            **flask.session['credentials'])
+
+        people = googleapiclient.discovery.build(
+            API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+        # Save credentials back to session in case access token was refreshed.
+        # ACTION ITEM: In a production app, you likely want to save these
+        #              credentials in a persistent database instead.
+        flask.session['credentials'] = credentials_to_dict(credentials)
+
+        results = people.people().connections().list(
+            resourceName='people/me',
+            **{"requestMask_includeField": (
+               "person.phoneNumbers,person.names")}).execute()
+
+        #words = split(message_body)
+        if len(query) == 3:
+            query = str(words[1]) + " " + str(words[2])
+        else:
+            query = str(words[1])
+
+        total = results['totalPeople']
+
+        for i in range(0, total):
+            name = results['connections'][i]
+            if query == name['names'][0]['displayName']:
+                phone = results['connections'][i]
+                number = phone['phoneNumbers'][0]['value']
+                break
+        phone_number = number
+        resp = twiml.Response()
+        resp.message(phone_number)
+        return str(resp)
 
     resp = MessagingResponse()
     message = ("Welcome to Lost in Phone!"
@@ -47,6 +92,9 @@ def message_received():
     resp.message(message)
 
     return str(resp)
+
+
+
 
 @app.route('/test')
 def test_api_request():
@@ -70,10 +118,21 @@ def test_api_request():
     results = people.people().connections().list(
         resourceName='people/me',
         **{"requestMask_includeField": (
-            "person.emailAddresses,person.names,person.photos")}).execute()
-    print(results)
+            "person.phoneNumbers,person.names")}).execute()
 
-    return ""
+    query = "Andi"
+
+    total = results['totalPeople']
+
+    for i in range(0, total):
+        name = results['connections'][i]
+        if query == name['names'][0]['displayName']:
+            phone = results['connections'][i]
+            number = phone['phoneNumbers'][0]['value']
+            break
+
+    return number
+
 
 @app.route('/authorize')
 def authorize():
