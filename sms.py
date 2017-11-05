@@ -88,7 +88,7 @@ def message_received():
     resp = MessagingResponse()
     message = ("Welcome to Lost in Phone!"
                "Please click the link below to get started: "
-               "http://f49ada64.ngrok.io/authorize")
+               " http://cffabc37.ngrok.io/authorize")
     resp.message(message)
 
     return str(resp)
