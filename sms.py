@@ -36,13 +36,13 @@ def index():
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
-    #from_number = request.values.get('From', None)
+    from_number = flask.request.values.get('From', None)
 	# Check if from_number is already in the database
     # If not, add them and get contacts from them
     #userMsg = client.messages()
     #number = request.form['From']
-    message_body = request.form['Body']
-    words = split(message_body)
+    message_body = flask.request.form['Body']
+    words = message_body.split(" ")
     number = words[0]
 
     if (message_body.contains(number)):
@@ -67,7 +67,7 @@ def message_received():
                "person.phoneNumbers,person.names")}).execute()
 
         #words = split(message_body)
-        if len(query) == 3:
+        if len(words) == 3:
             query = str(words[1]) + " " + str(words[2])
         else:
             query = str(words[1])
@@ -81,7 +81,7 @@ def message_received():
                 number = phone['phoneNumbers'][0]['value']
                 break
         phone_number = number
-        resp = twiml.Response()
+        resp = MessagingResponse()
         resp.message(phone_number)
         return str(resp)
 
@@ -94,44 +94,11 @@ def message_received():
     return str(resp)
 
 
-
-
 @app.route('/test')
 def test_api_request():
-    """Future authentication success page."""
+    """Authentication success page."""
 
-    if 'credentials' not in flask.session:
-        return flask.redirect('authorize')
-
-    # Load credentials from the session.
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
-
-    people = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-    # Save credentials back to session in case access token was refreshed.
-    # ACTION ITEM: In a production app, you likely want to save these
-    #              credentials in a persistent database instead.
-    flask.session['credentials'] = credentials_to_dict(credentials)
-
-    results = people.people().connections().list(
-        resourceName='people/me',
-        **{"requestMask_includeField": (
-            "person.phoneNumbers,person.names")}).execute()
-
-    query = "Andi"
-
-    total = results['totalPeople']
-
-    for i in range(0, total):
-        name = results['connections'][i]
-        if query == name['names'][0]['displayName']:
-            phone = results['connections'][i]
-            number = phone['phoneNumbers'][0]['value']
-            break
-
-    return number
+    return "Authentication success!"
 
 
 @app.route('/authorize')
@@ -256,4 +223,4 @@ if __name__ == '__main__':
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('localhost', 8080, debug=True)
+    app.run('http://lostnphoned.com/oauth2callback', 8080, debug=True)
