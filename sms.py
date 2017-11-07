@@ -53,6 +53,7 @@ def message_received():
     if sql.process(str(number), connection):
         print("lol")
         if 'credentials' not in flask.session:
+            print(flask.session)
             authorize()
             #return flask.redirect('authorize')
         print("oh what")
