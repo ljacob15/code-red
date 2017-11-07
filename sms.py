@@ -60,6 +60,7 @@ def message_received():
         print("oh what")
         print(flask.session)
         flask.session = temp
+        print(temp)
         # Load credentials from the session.
         credentials = google.oauth2.credentials.Credentials(
             **flask.session['credentials'])
