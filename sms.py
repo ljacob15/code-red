@@ -53,17 +53,18 @@ def message_received():
     if sql.process(str(number), connection):
         print("lol")
         if 'credentials' not in flask.session:
-            temp = flask.session
-            print(flask.session)
             authorize()
             #return flask.redirect('authorize')
         print("oh what")
-        print(flask.session)
-        flask.session = temp
-        print(temp)
         # Load credentials from the session.
-        credentials = google.oauth2.credentials.Credentials(
-            **flask.session['credentials'])
+
+        #flask.session['credentials'] = credentials_to_dict(credentials)
+        #flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        #    CLIENT_SECRETS_FILE, scopes=SCOPES)
+        #credentials = flow.credentials
+
+        #credentials = google.oauth2.credentials.Credentials(
+        #    **flask.session['credentials'])
         print("hmm")
         people = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)
@@ -141,8 +142,8 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    credentials = flow.credentials
-    flask.session['credentials'] = credentials_to_dict(credentials)
+    #credentials = flow.credentials
+    #flask.session['credentials'] = credentials_to_dict(credentials)
     print("wait it got here")
     return flask.redirect(authorization_url)
 
