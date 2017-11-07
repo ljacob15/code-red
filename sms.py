@@ -59,9 +59,9 @@ def message_received():
         # Load credentials from the session.
 
         #flask.session['credentials'] = credentials_to_dict(credentials)
-        #flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        #    CLIENT_SECRETS_FILE, scopes=SCOPES)
-        #credentials = flow.credentials
+        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+            CLIENT_SECRETS_FILE, scopes=SCOPES)
+        credentials = flow.credentials
 
         #credentials = google.oauth2.credentials.Credentials(
         #    **flask.session['credentials'])
