@@ -142,8 +142,8 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    authorization_response = flask.request.url
-    flow.fetch_token(authorization_response=authorization_response)
+    #authorization_response = flask.request.url
+    #flow.fetch_token(authorization_response=authorization_response)
     credentials = flow.credentials
     flask.session['credentials'] = credentials_to_dict(credentials)
     print("wait it got here")
