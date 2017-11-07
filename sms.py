@@ -54,7 +54,6 @@ def message_received():
         print("lol")
         if 'credentials' not in flask.session:
             authorize()
-            return
             #return flask.redirect('authorize')
         print("oh what")
         print(flask.session)
