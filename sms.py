@@ -51,23 +51,24 @@ def message_received():
     connection = sql.connect()
 
     if sql.process(str(number), connection):
+        """
         print("lol")
         if 'credentials' not in flask.session:
-            return flask.redirect('authorize')
-        else:
-            print("oh what")
-            # Load credentials from the session.
-            credentials = google.oauth2.credentials.Credentials(
-                **flask.session['credentials'])
-
-            people = googleapiclient.discovery.build(
-                API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-            # Save credentials back to session in case access token was refreshed.
-            # ACTION ITEM: In a production app, you likely want to save these
-            #              credentials in a persistent database instead.
-            flask.session['credentials'] = credentials_to_dict(credentials)
-
+            # return flask.redirect('authorize')
+            authorize()
+        print("oh what")
+        # Load credentials from the session.
+        credentials = google.oauth2.credentials.Credentials(
+            **flask.session['credentials'])
+        print("hmm")
+        people = googleapiclient.discovery.build(
+            API_SERVICE_NAME, API_VERSION, credentials=credentials)
+        print("hmmm222")
+        # Save credentials back to session in case access token was refreshed.
+        # ACTION ITEM: In a production app, you likely want to save these
+        #              credentials in a persistent database instead.
+        flask.session['credentials'] = credentials_to_dict(credentials)
+        print("hmm333")
         results = people.people().connections().list(
             resourceName='people/me',
             **{"requestMask_includeField": (
@@ -93,7 +94,11 @@ def message_received():
         resp = MessagingResponse()
         resp.message(str(phone_number))
         return str(resp)
-
+        """
+        resp = MessagingResponse()
+        message = ("4693861646")
+        resp.message(message)
+        return str(resp)
     else: # New user
         resp = MessagingResponse()
         message = ("Welcome to Lost in Phone!"
@@ -116,7 +121,7 @@ def test_api_request():
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
-
+    print("hi")
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -132,7 +137,7 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-
+    print("wait it got here")
     return flask.redirect(authorization_url)
 
 
