@@ -20,8 +20,6 @@ def connect():
 
 
     connection = pymysql.connect(host='129.158.66.189',
-                                user='root',
-                                password='CodeRed#2017',
                                 db='mydatabase',
                                 port = 3306,
                                 charset ='utf8mb4',
@@ -55,10 +53,8 @@ def process(number, connection):
         # print("OUTPUT: " + str(cursor.fetchall()))
         res = cursor.fetchall()
         if len(res) == 0:
-            print("**** new user ****")
             return False #user is not yet in database
         elif len(res) > 0:
-            print("**** returning user ****")
             return True #user is already in database
 
 
@@ -167,7 +163,9 @@ def main(number):
     print("Full program completed. Goodbye.")
 
 # main("1234567890")
+connection = connect()
 
+print(process("14694385890", connection))
 
 # def test_print():
 #
