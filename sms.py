@@ -5,7 +5,7 @@ import flask
 import requests
 
 from twilio.twiml.messaging_response import MessagingResponse
-from twilio.rest import Client
+
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -39,89 +39,50 @@ def index():
 def message_received():
     """Reply to a user via SMS."""
     #from_number = flask.request.values.get('From', None)
-    #print(from_number)
-	# Check if from_number is already in the database
+	# Check if number in message is already in the database
     # If not, add them and get contacts from them
-    #userMsg = client.messages()
-    #number = request.form['From']
+
     message_body = flask.request.form['Body']
-    words = message_body.split(" ")
-    number = words[0]
 
-    connection = sql.connect()
-
-    if sql.process(str(number), connection):
-        """
-        print("lol")
-        if 'credentials' not in flask.session:
-            # return flask.redirect('authorize')
-            authorize()
-        print("oh what")
-        # Load credentials from the session.
-        credentials = google.oauth2.credentials.Credentials(
-            **flask.session['credentials'])
-        print("hmm")
-        people = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials)
-        print("hmmm222")
-        # Save credentials back to session in case access token was refreshed.
-        # ACTION ITEM: In a production app, you likely want to save these
-        #              credentials in a persistent database instead.
-        flask.session['credentials'] = credentials_to_dict(credentials)
-        print("hmm333")
-        results = people.people().connections().list(
-            resourceName='people/me',
-            **{"requestMask_includeField": (
-               "person.phoneNumbers,person.names")}).execute()
-
-        #words = split(message_body)
-        print(words)
-        if len(words) == 3:
-            query = str(words[1]) + " " + str(words[2])
-        else:
-            query = str(words[1])
-
-        total = results['totalPeople']
-
-        for i in range(0, total):
-            name = results['connections'][i]
-            if query == name['names'][0]['displayName']:
-                phone = results['connections'][i]
-                number = phone['phoneNumbers'][0]['value']
-                break
-        phone_number = number
-        print(phone_number)
-        resp = MessagingResponse()
-        resp.message(str(phone_number))
-        return str(resp)
-        """
-        resp = MessagingResponse()
-        message = ("4693861646")
-        resp.message(message)
-        return str(resp)
-    else: # New user
-        resp = MessagingResponse()
-        message = ("Welcome to Lost in Phone!"
-                   "Please click the link below to get started: "
-                   " http://cffabc37.ngrok.io/authorize")
-        resp.message(message)
-
-        sql.add_user(number, connection)
+    resp = MessagingResponse()
+    message = ("Welcome to Lost in Phone!"
+               "Please click the link below to get started: "
+               "http://lostnphone.ngrok.io/authorize")
+    resp.message(message)
 
     return str(resp)
 
-
 @app.route('/test')
 def test_api_request():
-    """Authentication success page."""
+    """Future authentication success page."""
 
-    return "Authentication success!"
+    if 'credentials' not in flask.session:
+        return flask.redirect('authorize')
 
+    # Load credentials from the session.
+    credentials = google.oauth2.credentials.Credentials(
+        **flask.session['credentials'])
+
+    people = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+    # Save credentials back to session in case access token was refreshed.
+    # ACTION ITEM: In a production app, you likely want to save these
+    #              credentials in a persistent database instead.
+    flask.session['credentials'] = credentials_to_dict(credentials)
+
+    results = people.people().connections().list(
+        resourceName='people/me',
+        **{"requestMask_includeField": (
+            "person.phoneNumbers,person.names")}).execute()
+    print(results)
+
+    return ""
 
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
-    print("hi")
+
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -137,7 +98,7 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    print("wait it got here")
+
     return flask.redirect(authorization_url)
 
 
