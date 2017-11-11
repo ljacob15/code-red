@@ -57,7 +57,7 @@ def message_received():
     if phone_number not in savedata:
         message = ("Welcome to Lost in Phone! "
                    "Please click the link below to get started: "
-                   "http://b8d4e3af.ngrok.io/authorize?phone={}"
+                   "http://lostnphone.com/authorize?phone={}"
                    .format(phone_number))
     else:
         # Load credentials from the save file.
@@ -71,10 +71,10 @@ def message_received():
         savedata[phone_number] = credentials_to_dict(credentials)
 
         try:
-        results = people.people().connections().list(
-            resourceName='people/me',
-            **{"requestMask_includeField": (
-                "person.phoneNumbers,person.names")}).execute()
+            results = people.people().connections().list(
+                resourceName='people/me',
+                **{"requestMask_includeField": (
+                    "person.phoneNumbers,person.names")}).execute()
         except google.auth.exceptions.RefreshError:
             print("Expired token error encountered. Removing user.")
             del savedata[phone_number]
@@ -86,16 +86,16 @@ def message_received():
             print(error)
             message = "An error occurred. Please try again later."
         else:
-        # Find the desired person's phone number
-        query = " ".join(words[1:])
-        result = ""
-        for connection in results['connections']:
-            if (query == connection['names'][0]['displayName'] or
-                    query in connection['names'][0]['displayNameLastFirst']):
+            # Find the desired person's phone number
+            query = " ".join(words[1:])
+            result = ""
+            for connection in results['connections']:
+                if (query == connection['names'][0]['displayName'] or
+                        query in connection['names'][0]['displayNameLastFirst']):
 
                     person_name = connection['names'][0]['displayName']
-                result = connection['phoneNumbers'][0]['value']
-                break
+                    result = connection['phoneNumbers'][0]['value']
+                    break
             if result:
                 message = "{}'s phone number: {}".format(person_name, result)
             else:
@@ -248,8 +248,8 @@ if __name__ == '__main__':
     # When running locally, disable OAuthlib's HTTPs verification.
     # ACTION ITEM for developers:
     #     When running in production *do not* leave this option enabled.
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('localhost', 8080, debug=True)
+    app.run('0.0.0.0', 80)
