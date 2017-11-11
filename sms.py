@@ -59,7 +59,6 @@ def message_received():
                    "Please click the link below to get started: "
                    "http://b8d4e3af.ngrok.io/authorize?phone={}"
                    .format(phone_number))
-        resp.message(message)
     else:
         # Load credentials from the save file.
         credentials = google.oauth2.credentials.Credentials(
