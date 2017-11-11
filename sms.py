@@ -70,14 +70,23 @@ def message_received():
 
         # Save credentials back to save file in case access token was refreshed.
         savedata[phone_number] = credentials_to_dict(credentials)
-        with open(FILEPATH, 'w+') as savefile:
-            json.dump(savedata, savefile)
 
+        try:
         results = people.people().connections().list(
             resourceName='people/me',
             **{"requestMask_includeField": (
                 "person.phoneNumbers,person.names")}).execute()
-
+        except google.auth.exceptions.RefreshError:
+            print("Expired token error encountered. Removing user.")
+            del savedata[phone_number]
+            message = ("Welcome to Lost in Phone! "
+                       "Please click the link below to get started: "
+                       "http://lostnphoned.com/authorize?phone={}"
+                       .format(phone_number))
+        except google.auth.exceptions.GoogleAuthError as error:
+            print(error)
+            message = "An error occurred. Please try again later."
+        else:
         # Find the desired person's phone number
         query = " ".join(words[1:])
         result = ""
@@ -85,11 +94,18 @@ def message_received():
             if (query == connection['names'][0]['displayName'] or
                     query in connection['names'][0]['displayNameLastFirst']):
 
+                    person_name = connection['names'][0]['displayName']
                 result = connection['phoneNumbers'][0]['value']
                 break
+            if result:
+                message = "{}'s phone number: {}".format(person_name, result)
+            else:
+                message = "Contact not found."
+        finally:
+            with open(FILEPATH, 'w+') as savefile:
+                json.dump(savedata, savefile)
 
-        resp.message(result)
-
+    resp.message(message)
     return str(resp)
 
 @app.route('/authorize-success')
