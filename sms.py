@@ -1,6 +1,7 @@
 """Handles SMS messages to and from users."""
 
 import os
+import json
 import flask
 import requests
 
@@ -11,6 +12,9 @@ import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
 import sql
+
+# The location of the json file that will contain user data.
+FILEPATH = 'data.json'
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -33,51 +37,66 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 def index():
     """Display testing page."""
 
-    return print_index_table()
+    return "" # print_index_table()
 
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
     #from_number = flask.request.values.get('From', None)
-	# Check if number in message is already in the database
-    # If not, add them and get contacts from them
 
     message_body = flask.request.form['Body']
-
+    words = message_body.split(" ")
+    phone_number = words[0]
     resp = MessagingResponse()
-    message = ("Welcome to Lost in Phone!"
-               "Please click the link below to get started: "
-               "http://lostnphone.ngrok.io/authorize")
-    resp.message(message)
+
+    # Add checks to ensure phone_number is standardized
+
+    with open(FILEPATH, 'r') as savefile:
+        savedata = json.load(savefile)
+
+    if phone_number not in savedata:
+        message = ("Welcome to Lost in Phone! "
+                   "Please click the link below to get started: "
+                   "http://b8d4e3af.ngrok.io/authorize?phone={}"
+                   .format(phone_number))
+        resp.message(message)
+    else:
+        # Load credentials from the save file.
+        credentials = google.oauth2.credentials.Credentials(
+            **savedata[phone_number])
+
+        people = googleapiclient.discovery.build(
+            API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+        # Save credentials back to save file in case access token was refreshed.
+        savedata[phone_number] = credentials_to_dict(credentials)
+        with open(FILEPATH, 'w+') as savefile:
+            json.dump(savedata, savefile)
+
+        results = people.people().connections().list(
+            resourceName='people/me',
+            **{"requestMask_includeField": (
+                "person.phoneNumbers,person.names")}).execute()
+
+        # Find the desired person's phone number
+        query = " ".join(words[1:])
+        result = ""
+        for connection in results['connections']:
+            if (query == connection['names'][0]['displayName'] or
+                    query in connection['names'][0]['displayNameLastFirst']):
+
+                result = connection['phoneNumbers'][0]['value']
+                break
+
+        resp.message(result)
 
     return str(resp)
 
-@app.route('/test')
-def test_api_request():
-    """Future authentication success page."""
+@app.route('/authorize-success')
+def authorize_success():
+    """Authorization success page."""
 
-    if 'credentials' not in flask.session:
-        return flask.redirect('authorize')
-
-    # Load credentials from the session.
-    credentials = google.oauth2.credentials.Credentials(
-        **flask.session['credentials'])
-
-    people = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-    # Save credentials back to session in case access token was refreshed.
-    # ACTION ITEM: In a production app, you likely want to save these
-    #              credentials in a persistent database instead.
-    flask.session['credentials'] = credentials_to_dict(credentials)
-
-    results = people.people().connections().list(
-        resourceName='people/me',
-        **{"requestMask_includeField": (
-            "person.phoneNumbers,person.names")}).execute()
-    print(results)
-
-    return ""
+    return "Authorization success!"
 
 @app.route('/authorize')
 def authorize():
@@ -98,6 +117,10 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
+    print("authorize state: " + str(state))
+
+    # Store the user's phone number (from the request parameter) for the callback to use.
+    flask.session['phone_number'] = flask.request.args.get('phone', type=str)
 
     return flask.redirect(authorization_url)
 
@@ -109,6 +132,8 @@ def oauth2callback():
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
     state = flask.session['state']
+    phone_number = flask.session['phone_number']
+    print("oauth2callback state: " + str(state) + ' / ' + phone_number)
 
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
@@ -118,13 +143,17 @@ def oauth2callback():
     authorization_response = flask.request.url
     flow.fetch_token(authorization_response=authorization_response)
 
-    # Store credentials in the session.
-    # ACTION ITEM: In a production app, you likely want to save these
-    #              credentials in a persistent database instead.
+    # Store credentials in the save file.
     credentials = flow.credentials
-    flask.session['credentials'] = credentials_to_dict(credentials)
-    print(credentials)
-    return flask.redirect(flask.url_for('test_api_request'))
+    with open(FILEPATH, 'r') as savefile:
+        savedata = json.load(savefile)
+
+    savedata[phone_number] = credentials_to_dict(credentials)
+
+    with open(FILEPATH, 'w+') as savefile:
+        json.dump(savedata, savefile)
+
+    return flask.redirect(flask.url_for('authorize_success'))
 
 
 @app.route('/revoke')
@@ -194,6 +223,13 @@ def print_index_table():
 
 
 if __name__ == '__main__':
+    try:
+        with open(FILEPATH, 'r'):
+            pass
+    except FileNotFoundError:
+        with open(FILEPATH, 'w+') as savefile:
+            json.dump({}, savefile)
+
     # When running locally, disable OAuthlib's HTTPs verification.
     # ACTION ITEM for developers:
     #     When running in production *do not* leave this option enabled.
