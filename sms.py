@@ -1,16 +1,20 @@
 """Handles SMS messages to and from users."""
 
 import os
+import json
 import flask
 import requests
 
 from twilio.twiml.messaging_response import MessagingResponse
-from twilio.rest import Client
+
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
 import sql
+
+# The location of the json file that will contain user data.
+FILEPATH = 'data.json'
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -33,95 +37,86 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 def index():
     """Display testing page."""
 
-    return print_index_table()
+    return "" # print_index_table()
 
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
     #from_number = flask.request.values.get('From', None)
-    #print(from_number)
-	# Check if from_number is already in the database
-    # If not, add them and get contacts from them
-    #userMsg = client.messages()
-    #number = request.form['From']
+
     message_body = flask.request.form['Body']
     words = message_body.split(" ")
-    number = words[0]
+    phone_number = words[0]
+    resp = MessagingResponse()
 
-    connection = sql.connect()
+    # Add checks to ensure phone_number is standardized
 
-    if sql.process(str(number), connection):
-        """
-        print("lol")
-        if 'credentials' not in flask.session:
-            # return flask.redirect('authorize')
-            authorize()
-        print("oh what")
-        # Load credentials from the session.
+    with open(FILEPATH, 'r') as savefile:
+        savedata = json.load(savefile)
+
+    if phone_number not in savedata:
+        message = ("Welcome to Lost in Phone! "
+                   "Please click the link below to get started: "
+                   "http://lostnphone.com/authorize?phone={}"
+                   .format(phone_number))
+    else:
+        # Load credentials from the save file.
         credentials = google.oauth2.credentials.Credentials(
-            **flask.session['credentials'])
-        print("hmm")
+            **savedata[phone_number])
+
         people = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)
-        print("hmmm222")
-        # Save credentials back to session in case access token was refreshed.
-        # ACTION ITEM: In a production app, you likely want to save these
-        #              credentials in a persistent database instead.
-        flask.session['credentials'] = credentials_to_dict(credentials)
-        print("hmm333")
-        results = people.people().connections().list(
-            resourceName='people/me',
-            **{"requestMask_includeField": (
-               "person.phoneNumbers,person.names")}).execute()
 
-        #words = split(message_body)
-        print(words)
-        if len(words) == 3:
-            query = str(words[1]) + " " + str(words[2])
+        # Save credentials back to save file in case access token was refreshed.
+        savedata[phone_number] = credentials_to_dict(credentials)
+
+        try:
+            results = people.people().connections().list(
+                resourceName='people/me',
+                **{"requestMask_includeField": (
+                    "person.phoneNumbers,person.names")}).execute()
+        except google.auth.exceptions.RefreshError:
+            print("Expired token error encountered. Removing user.")
+            del savedata[phone_number]
+            message = ("Welcome to Lost in Phone! "
+                       "Please click the link below to get started: "
+                       "http://lostnphoned.com/authorize?phone={}"
+                       .format(phone_number))
+        except google.auth.exceptions.GoogleAuthError as error:
+            print(error)
+            message = "An error occurred. Please try again later."
         else:
-            query = str(words[1])
+            # Find the desired person's phone number
+            query = " ".join(words[1:])
+            result = ""
+            for connection in results['connections']:
+                if (query == connection['names'][0]['displayName'] or
+                        query in connection['names'][0]['displayNameLastFirst']):
 
-        total = results['totalPeople']
+                    person_name = connection['names'][0]['displayName']
+                    result = connection['phoneNumbers'][0]['value']
+                    break
+            if result:
+                message = "{}'s phone number: {}".format(person_name, result)
+            else:
+                message = "Contact not found."
+        finally:
+            with open(FILEPATH, 'w+') as savefile:
+                json.dump(savedata, savefile)
 
-        for i in range(0, total):
-            name = results['connections'][i]
-            if query == name['names'][0]['displayName']:
-                phone = results['connections'][i]
-                number = phone['phoneNumbers'][0]['value']
-                break
-        phone_number = number
-        print(phone_number)
-        resp = MessagingResponse()
-        resp.message(str(phone_number))
-        return str(resp)
-        """
-        resp = MessagingResponse()
-        message = ("4693861646")
-        resp.message(message)
-        return str(resp)
-    else: # New user
-        resp = MessagingResponse()
-        message = ("Welcome to Lost in Phone!"
-                   "Please click the link below to get started: "
-                   " http://cffabc37.ngrok.io/authorize")
-        resp.message(message)
-
-        sql.add_user(number, connection)
-
+    resp.message(message)
     return str(resp)
 
+@app.route('/authorize-success')
+def authorize_success():
+    """Authorization success page."""
 
-@app.route('/test')
-def test_api_request():
-    """Authentication success page."""
-
-    return "Authentication success!"
-
+    return "Authorization success!"
 
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
-    print("hi")
+
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
@@ -137,7 +132,11 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    print("wait it got here")
+    print("authorize state: " + str(state))
+
+    # Store the user's phone number (from the request parameter) for the callback to use.
+    flask.session['phone_number'] = flask.request.args.get('phone', type=str)
+
     return flask.redirect(authorization_url)
 
 
@@ -148,6 +147,8 @@ def oauth2callback():
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
     state = flask.session['state']
+    phone_number = flask.session['phone_number']
+    print("oauth2callback state: " + str(state) + ' / ' + phone_number)
 
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
@@ -157,13 +158,17 @@ def oauth2callback():
     authorization_response = flask.request.url
     flow.fetch_token(authorization_response=authorization_response)
 
-    # Store credentials in the session.
-    # ACTION ITEM: In a production app, you likely want to save these
-    #              credentials in a persistent database instead.
+    # Store credentials in the save file.
     credentials = flow.credentials
-    flask.session['credentials'] = credentials_to_dict(credentials)
-    print(credentials)
-    return flask.redirect(flask.url_for('test_api_request'))
+    with open(FILEPATH, 'r') as savefile:
+        savedata = json.load(savefile)
+
+    savedata[phone_number] = credentials_to_dict(credentials)
+
+    with open(FILEPATH, 'w+') as savefile:
+        json.dump(savedata, savefile)
+
+    return flask.redirect(flask.url_for('authorize_success'))
 
 
 @app.route('/revoke')
@@ -233,11 +238,18 @@ def print_index_table():
 
 
 if __name__ == '__main__':
+    try:
+        with open(FILEPATH, 'r'):
+            pass
+    except FileNotFoundError:
+        with open(FILEPATH, 'w+') as savefile:
+            json.dump({}, savefile)
+
     # When running locally, disable OAuthlib's HTTPs verification.
     # ACTION ITEM for developers:
     #     When running in production *do not* leave this option enabled.
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('localhost', 8080, debug=True)
+    app.run('0.0.0.0', 80)
