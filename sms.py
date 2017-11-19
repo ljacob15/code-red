@@ -73,8 +73,8 @@ def message_received():
         try:
             results = people.people().connections().list(
                 resourceName='people/me',
-                **{"requestMask_includeField": (
-                    "person.phoneNumbers,person.names")}).execute()
+                pageSize=2000,
+                personFields='names,phoneNumbers').execute()
         except google.auth.exceptions.RefreshError:
             print("Expired token error encountered. Removing user.")
             del savedata[phone_number]
