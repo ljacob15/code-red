@@ -89,7 +89,7 @@ def message_received():
         else:
             # Find the desired person's phone number
             query = " ".join(words[1:]).lower()
-            exact_matches = {}
+            exact_matches = []
             word_matches = {}
             contacts = {}
             for connection in results['connections']:
@@ -97,7 +97,7 @@ def message_received():
                 number = connection['phoneNumbers'][0]['value']
 
                 if query == name.lower():
-                    exact_matches[name] = number
+                    exact_matches.append((name, number))
                 elif not exact_matches and sublist(
                         [item.lower() for item in words[1:]],
                         name.lower().split(" ")):
@@ -108,7 +108,7 @@ def message_received():
             if exact_matches:
                 message = ""
                 count = 0
-                for key, value in exact_matches.items():
+                for key, value in exact_matches:
                     message += "{}: {}\n".format(key, value)
                     count += 1
                     if count >= 5:
