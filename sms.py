@@ -2,6 +2,7 @@
 
 import os
 import json
+import difflib
 import flask
 import requests
 
@@ -73,8 +74,8 @@ def message_received():
         try:
             results = people.people().connections().list(
                 resourceName='people/me',
-                **{"requestMask_includeField": (
-                    "person.phoneNumbers,person.names")}).execute()
+                pageSize=2000,
+                personFields='names,phoneNumbers').execute()
         except google.auth.exceptions.RefreshError:
             print("Expired token error encountered. Removing user.")
             del savedata[phone_number]
@@ -87,19 +88,48 @@ def message_received():
             message = "An error occurred. Please try again later."
         else:
             # Find the desired person's phone number
-            query = " ".join(words[1:])
-            result = ""
+            query = " ".join(words[1:]).lower()
+            exact_matches = {}
+            word_matches = {}
+            contacts = {}
             for connection in results['connections']:
-                if (query == connection['names'][0]['displayName'] or
-                        query in connection['names'][0]['displayNameLastFirst']):
+                name = connection['names'][0]['displayName']
+                number = connection['phoneNumbers'][0]['value']
 
-                    person_name = connection['names'][0]['displayName']
-                    result = connection['phoneNumbers'][0]['value']
-                    break
-            if result:
-                message = "{}'s phone number: {}".format(person_name, result)
+                if query == name.lower():
+                    exact_matches[name] = number
+                elif not exact_matches and sublist(
+                        [item.lower() for item in words[1:]],
+                        name.lower().split(" ")):
+                    word_matches[name] = number
+                elif not word_matches and not exact_matches:
+                    contacts[name] = number
+
+            if exact_matches:
+                message = ""
+                count = 0
+                for key, value in exact_matches.items():
+                    message += "{}: {}\n".format(key, value)
+                    count += 1
+                    if count >= 5:
+                        break
+            elif word_matches:
+                message = ""
+                count = 0
+                for key, value in word_matches.items():
+                    message += "{}: {}\n".format(key, value)
+                    count += 1
+                    if count >= 5:
+                        break
             else:
-                message = "Contact not found."
+                lowered = {name.lower():name for name in contacts}
+                names = difflib.get_close_matches(query, lowered.keys(), cutoff=0.33)
+                if names:
+                    message = "Contact not found. Similar results:\n"
+                    for name in names:
+                        message += "{}: {}\n".format(lowered[name], contacts[lowered[name]])
+                else:
+                    message = "Contact not found."
         finally:
             with open(FILEPATH, 'w+') as savefile:
                 json.dump(savedata, savefile)
@@ -201,6 +231,33 @@ def clear_credentials():
         del flask.session['credentials']
         return ('Credentials have been cleared.<br><br>' +
                 print_index_table())
+
+
+def sublist(ls1, ls2):
+    # modified from https://stackoverflow.com/a/35964184
+    '''
+    >>> sublist([], [1,2,3])
+    False
+    >>> sublist([1,2,3,4], [2,5,3])
+    True
+    >>> sublist([1,2,3,4], [0,3,2])
+    False
+    >>> sublist([1,2,3,4], [1,2,5,6,7,8,5,76,4,3])
+    False
+    '''
+    def get_all_in(one, another):
+        """Get elements shared by both lists."""
+        for element in one:
+            if element in another:
+                yield element
+
+    match = False
+    for elem1, elem2 in zip(get_all_in(ls1, ls2), get_all_in(ls2, ls1)):
+        if elem1 != elem2:
+            return False
+        match = True
+
+    return match
 
 
 def credentials_to_dict(credentials):
