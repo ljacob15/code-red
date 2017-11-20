@@ -40,6 +40,7 @@ def index():
 
     return "" # print_index_table()
 
+
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
@@ -137,11 +138,13 @@ def message_received():
     resp.message(message)
     return str(resp)
 
+
 @app.route('/authorize-success')
 def authorize_success():
     """Authorization success page."""
 
     return "Authorization success!"
+
 
 @app.route('/authorize')
 def authorize():
