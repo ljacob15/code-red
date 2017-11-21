@@ -4,7 +4,6 @@ import os
 import json
 import difflib
 import flask
-import requests
 
 from twilio.twiml.messaging_response import MessagingResponse
 
@@ -38,7 +37,7 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 def index():
     """Display testing page."""
 
-    return "" # print_index_table()
+    return ""
 
 
 @app.route("/twilio", methods=['GET', 'POST'])
