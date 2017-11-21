@@ -1,7 +1,6 @@
 """Handles SMS messages to and from users."""
 
 import os
-import json
 import difflib
 import flask
 
@@ -12,9 +11,6 @@ import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
 import sql
-
-# The location of the json file that will contain user data.
-FILEPATH = 'data.json'
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -49,27 +45,26 @@ def message_received():
     words = message_body.split(" ")
     phone_number = words[0]
     resp = MessagingResponse()
+    connection = sql.connect()
 
     # Add checks to ensure phone_number is standardized
 
-    with open(FILEPATH, 'r') as savefile:
-        savedata = json.load(savefile)
-
-    if phone_number not in savedata:
+    if not sql.existing_user(phone_number, connection):
         message = ("Welcome to Lost in Phone! "
                    "Please click the link below to get started: "
                    "http://lostnphone.com/authorize?phone={}"
                    .format(phone_number))
     else:
-        # Load credentials from the save file.
+        # Load credentials from the database.
+        credentials_dict = sql.get_credentials(phone_number, connection)
         credentials = google.oauth2.credentials.Credentials(
-            **savedata[phone_number])
+            **credentials_dict)
 
         people = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
-        # Save credentials back to save file in case access token was refreshed.
-        savedata[phone_number] = credentials_to_dict(credentials)
+        # Save credentials back to database in case access token was refreshed.
+        sql.update_user(phone_number, credentials, connection)
 
         try:
             results = people.people().connections().list(
@@ -78,7 +73,7 @@ def message_received():
                 personFields='names,phoneNumbers').execute()
         except google.auth.exceptions.RefreshError:
             print("Expired token error encountered. Removing user.")
-            del savedata[phone_number]
+            sql.remove_user(phone_number, connection)
             message = ("Welcome to Lost in Phone! "
                        "Please click the link below to get started: "
                        "http://lostnphoned.com/authorize?phone={}"
@@ -92,9 +87,9 @@ def message_received():
             exact_matches = []
             word_matches = {}
             contacts = {}
-            for connection in results['connections']:
-                name = connection['names'][0]['displayName']
-                number = connection['phoneNumbers'][0]['value']
+            for person in results['connections']:
+                name = person['names'][0]['displayName']
+                number = person['phoneNumbers'][0]['value']
 
                 if query == name.lower():
                     exact_matches.append((name, number))
@@ -130,10 +125,8 @@ def message_received():
                         message += "{}: {}\n".format(lowered[name], contacts[lowered[name]])
                 else:
                     message = "Contact not found."
-        finally:
-            with open(FILEPATH, 'w+') as savefile:
-                json.dump(savedata, savefile)
 
+    connection.close()
     resp.message(message)
     return str(resp)
 
@@ -164,7 +157,6 @@ def authorize():
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
-    print("authorize state: " + str(state))
 
     # Store the user's phone number (from the request parameter) for the callback to use.
     flask.session['phone_number'] = flask.request.args.get('phone', type=str)
@@ -180,7 +172,6 @@ def oauth2callback():
     # verified in the authorization server response.
     state = flask.session['state']
     phone_number = flask.session['phone_number']
-    print("oauth2callback state: " + str(state) + ' / ' + phone_number)
 
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
@@ -190,15 +181,12 @@ def oauth2callback():
     authorization_response = flask.request.url
     flow.fetch_token(authorization_response=authorization_response)
 
-    # Store credentials in the save file.
+    # Store credentials in the database.
     credentials = flow.credentials
-    with open(FILEPATH, 'r') as savefile:
-        savedata = json.load(savefile)
 
-    savedata[phone_number] = credentials_to_dict(credentials)
-
-    with open(FILEPATH, 'w+') as savefile:
-        json.dump(savedata, savefile)
+    connection = sql.connect()
+    sql.add_user(phone_number, credentials, connection)
+    connection.close()
 
     return flask.redirect(flask.url_for('authorize_success'))
 
@@ -230,25 +218,7 @@ def sublist(ls1, ls2):
     return match
 
 
-def credentials_to_dict(credentials):
-    """Convert credentials to dictionary format."""
-
-    return {'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes}
-
-
 if __name__ == '__main__':
-    try:
-        with open(FILEPATH, 'r'):
-            pass
-    except FileNotFoundError:
-        with open(FILEPATH, 'w+') as savefile:
-            json.dump({}, savefile)
-
     # When running locally, disable OAuthlib's HTTPs verification.
     # ACTION ITEM for developers:
     #     When running in production *do not* leave this option enabled.
