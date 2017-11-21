@@ -24,7 +24,7 @@ def existing_user(number: str, connection) -> bool:
 
     with connection.cursor() as cursor:
 
-        query = "SELECT * FROM users WHERE phoneNumber = %s"
+        query = "SELECT * FROM users WHERE phone_number = %s"
 
         cursor.execute(query, (number))
 
@@ -44,7 +44,7 @@ def get_credentials(number: str, connection) -> dict:
                  "client_id, "
                  "client_secret, "
                  "scopes "
-                 "FROM users WHERE phoneNumber = %s")
+                 "FROM users WHERE phone_number = %s")
 
         cursor.execute(query, (number))
 
@@ -84,7 +84,7 @@ def update_user(number: str, credentials, connection):
                    "client_id = %(client_id)s, "
                    "client_secret = %(client_secret)s, "
                    "scopes = %(scopes)s "
-                   "WHERE phoneNumber = %(number)s")
+                   "WHERE phone_number = %(number)s")
 
         cursor.execute(command, data)
         connection.commit()
@@ -94,7 +94,7 @@ def remove_user(number: str, connection):
     """Remove a user from the database."""
     with connection.cursor() as cursor:
 
-        command = "DELETE FROM users WHERE phoneNumber = %s"
+        command = "DELETE FROM users WHERE phone_number = %s"
 
         cursor.execute(command, (number))
         connection.commit()
@@ -102,12 +102,12 @@ def remove_user(number: str, connection):
 
 def validate_passphrase(number, public_key, password_attempt, connection):
     # query = ("SELECT security FROM mainData"
-    #         "WHERE phoneNumber = %s")
+    #         "WHERE phone_number = %s")
 
     assert type(public_key) == int and type(password_attempt) == int, "numerical inputs are not ints!"
     with connection.cursor() as cursor:
 
-        query = "SELECT security FROM `mainData` WHERE `phoneNumber` = %s "
+        query = "SELECT security FROM `mainData` WHERE `phone_number` = %s "
 
         cursor.execute(query, (number))
 
