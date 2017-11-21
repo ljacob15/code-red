@@ -38,7 +38,13 @@ def get_credentials(number: str, connection) -> dict:
 
     with connection.cursor() as cursor:
 
-        query = "SELECT token FROM users WHERE phoneNumber = %s"
+        query = ("SELECT token, "
+                 "refresh_token, "
+                 "token_uri, "
+                 "client_id, "
+                 "client_secret, "
+                 "scopes "
+                 "FROM users WHERE phoneNumber = %s")
 
         cursor.execute(query, (number))
 
