@@ -19,8 +19,6 @@ def existing_user(number: str, connection) -> bool:
     """Check if a phone number is already in the database.
 
     Returns True if the number is found, False if not."""
-    if not isinstance(number, str):
-        raise TypeError
 
     with connection.cursor() as cursor:
 
