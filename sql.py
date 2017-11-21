@@ -1,74 +1,97 @@
 """ Process the user in the database """
 
+import random
 import pymysql
-import pymysql.cursors
-import random as rand
 
-# import mysql.connector
-# from mysql.connector import errorcode
-
-
-# database = "mainData"
 
 def connect():
     """Connect to the database. Returns connection object."""
-
-    # return pymysql.connect(user='root',
-    #                    password='CodeRed#2017',
-    #                    database='mydatabase',
-    #                    host='129.158.66.189')
-
-
-    connection = pymysql.connect(host='129.158.66.189',
-                                db='mydatabase',
-                                port = 3306,
-                                charset ='utf8mb4',
-                                cursorclass=pymysql.cursors.DictCursor)
+    connection = pymysql.connect(host='localhost',
+                                 user='MySQL_username_here',
+                                 password='',
+                                 db='lostnphoned',
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
     return connection
 
-    # except mysql.connector.Error as err:
-    #     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-    #         print("Something is wrong with your user name or password")
-    #     elif err.errno == errorcode.ER_BAD_DB_ERROR:
-    #         print("Database does not exist")
-    #     else:
-    #         print(err)
 
+def existing_user(number: str, connection) -> bool:
+    """Check if a phone number is already in the database.
 
-def process(number, connection):
-    """
-    before this, get the user phone number, store it as a string,
-    and pass it into this function.
-    """
-    assert type(number) == str, "number must be a string"
+    Returns True if the number is found, False if not."""
+    if not isinstance(number, str):
+        raise TypeError
 
     with connection.cursor() as cursor:
 
-        # query = ("SELECT * FROM mainData"
-        #         "WHERE phoneNumber = %s")
-
-        query = "SELECT * FROM `mainData` WHERE `phoneNumber` = %s "
+        query = "SELECT * FROM users WHERE phoneNumber = %s"
 
         cursor.execute(query, (number))
-        # print("OUTPUT: " + str(cursor.fetchall()))
-        res = cursor.fetchall()
-        if len(res) == 0:
-            return False #user is not yet in database
-        elif len(res) > 0:
-            return True #user is already in database
+
+        data = cursor.fetchall()
+
+        return bool(data)
 
 
-def get_token(number, connection):
-    # query = ("SELECT token FROM mainData"
-    #         "WHERE phoneNumber = %s")
+def get_credentials(number: str, connection) -> dict:
+    """Retrieve the credentials associated with a user's phone number."""
 
     with connection.cursor() as cursor:
 
-        query = "SELECT token FROM `mainData` WHERE `phoneNumber` = %s "
+        query = "SELECT token FROM users WHERE phoneNumber = %s"
 
         cursor.execute(query, (number))
 
-        return cursor
+        return cursor.fetchone()
+
+
+def add_user(number: str, credentials, connection):
+    """Add a user's phone number to the database."""
+    with connection.cursor() as cursor:
+
+        command = ("INSERT INTO users "
+                   "VALUES (%s, %s, %s, %s, %s, %s, %s)")
+
+        data = [number,
+                credentials.token,
+                credentials.refresh_token,
+                credentials.token_uri,
+                credentials.client_id,
+                credentials.client_secret,
+                credentials.scopes]
+
+        cursor.execute(command, data)
+        connection.commit()
+
+
+def update_user(number: str, credentials, connection):
+    """Update a user's credentials."""
+    with connection.cursor() as cursor:
+
+        data = credentials_to_dict(credentials)
+        data['number'] = number
+
+        command = ("UPDATE users "
+                   "SET token = %(token)s, "
+                   "refresh_token = %(refresh_token)s, "
+                   "token_uri = %(token_uri)s, "
+                   "client_id = %(client_id)s, "
+                   "client_secret = %(client_secret)s, "
+                   "scopes = %(scopes)s "
+                   "WHERE phoneNumber = %(number)s")
+
+        cursor.execute(command, data)
+        connection.commit()
+
+
+def remove_user(number: str, connection):
+    """Remove a user from the database."""
+    with connection.cursor() as cursor:
+
+        command = "DELETE FROM users WHERE phoneNumber = %s"
+
+        cursor.execute(command, (number))
+        connection.commit()
 
 
 def validate_passphrase(number, public_key, password_attempt, connection):
@@ -94,32 +117,15 @@ def validate_passphrase(number, public_key, password_attempt, connection):
             return False
 
 
-def add_user(number, connection):
-    with connection.cursor() as cursor:
+def credentials_to_dict(credentials):
+    """Convert credentials to dictionary format."""
 
-        #print("New user! Proceed to authentication.")
-        # EXECUTE AUTHENTICATION
-        # token = prompt_for_authentication()
-        #token = input("What is your gmail username?")
-
-
-        # REQUEST USER PRIVATE KEY
-        #key = input("Enter your private key; do not share!")
-
-        #number = "\'" + str(number) + "\'"
-        #token = "\'" + str(token) + "\'"
-        #key = int(key)
-        # print(number)
-        # print(token)
-        # print(key)
-
-        #create user profile in database
-        add = "INSERT INTO `mainData` VALUES ({}, {}, {})".format(number, "'abc'", 17)
-        cursor.execute(add)
-        connection.commit()
-
-        print("Added new user")
-
+    return {'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes}
 
 
 def main(number):
@@ -138,7 +144,7 @@ def main(number):
         while (tries > 0):
 
             # SEND THE PUBLIC KEY TO THE USER, PROMPT FOR PASSWORD
-            public_key = int(rand.randint(100, 999))
+            public_key = int(random.randint(100, 999))
             print(public_key)
 
             # password_attempt = get_passphrase()
@@ -161,24 +167,3 @@ def main(number):
                     tries -= 1
                     print("Incorrect password; please try again.")
     print("Full program completed. Goodbye.")
-
-# main("1234567890")
-connection = connect()
-
-print(process("14694385890", connection))
-
-# def test_print():
-#
-    # print(token)
-    # print(type(token))
-    # foo = token.fetchall()
-    # print(foo)
-    # print(type(foo))
-    #
-    # bar = foo[0]
-    # print(bar)
-    # print(type(bar))
-    #
-    # baz = bar['token']
-    # print(baz)
-    # print(type(baz))
