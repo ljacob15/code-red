@@ -31,7 +31,7 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 
 @app.route('/')
 def index():
-    """Display testing page."""
+    """This page currently has no purpose."""
 
     return ""
 
@@ -50,7 +50,7 @@ def message_received():
     # Add checks to ensure phone_number is standardized
 
     if not sql.existing_user(phone_number, connection):
-        message = ("Welcome to Lost in Phone! "
+        message = ("Welcome to Lost-n-Phoned! "
                    "Please click the link below to get started: "
                    "http://lostnphoned.com/authorize?phone={}"
                    .format(phone_number))
@@ -145,7 +145,7 @@ def get_contacts(words, connection):
     except google.auth.exceptions.RefreshError:
         print("Expired token error encountered. Removing user.")
         sql.remove_user(phone_number, connection)
-        message = ("Welcome to Lost in Phone! "
+        message = ("Welcome to Lost-n-Phoned! "
                    "Please click the link below to get started: "
                    "http://lostnphoned.com/authorize?phone={}"
                    .format(phone_number))
