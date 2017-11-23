@@ -88,8 +88,11 @@ def message_received():
             word_matches = {}
             contacts = {}
             for person in results['connections']:
+                try:
                 name = person['names'][0]['displayName']
                 number = person['phoneNumbers'][0]['value']
+                except KeyError:
+                    continue
 
                 if query == name.lower():
                     exact_matches.append((name, number))
