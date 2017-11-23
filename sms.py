@@ -52,7 +52,7 @@ def message_received():
     if not sql.existing_user(phone_number, connection):
         message = ("Welcome to Lost in Phone! "
                    "Please click the link below to get started: "
-                   "http://lostnphone.com/authorize?phone={}"
+                   "http://lostnphoned.com/authorize?phone={}"
                    .format(phone_number))
     else:
         # Load credentials from the database.
