@@ -89,8 +89,8 @@ def message_received():
             contacts = {}
             for person in results['connections']:
                 try:
-                name = person['names'][0]['displayName']
-                number = person['phoneNumbers'][0]['value']
+                    name = person['names'][0]['displayName']
+                    number = person['phoneNumbers'][0]['value']
                 except KeyError:
                     continue
 
