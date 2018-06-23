@@ -1,5 +1,14 @@
 """Handles SMS messages to and from users."""
 
+# The following pip packages are required:
+
+# google-api-python-client
+# google-auth
+# google-auth-oauthlib
+# google-auth-httplib2
+# flask
+# requests
+
 import os
 import difflib
 import flask
@@ -243,5 +252,5 @@ if __name__ == '__main__':
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('0.0.0.0', 80)
+    app.run('localhost', 8080)
     # Testing automated deployment.
