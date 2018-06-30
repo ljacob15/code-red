@@ -1,5 +1,14 @@
 """Handles SMS messages to and from users."""
 
+# The following pip packages are required:
+
+# google-api-python-client
+# google-auth
+# google-auth-oauthlib
+# google-auth-httplib2
+# flask
+# requests
+
 import os
 import difflib
 import flask
@@ -31,7 +40,7 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 
 @app.route('/')
 def index():
-    """Display testing page."""
+    """This page currently has no purpose."""
 
     return ""
 
@@ -50,81 +59,12 @@ def message_received():
     # Add checks to ensure phone_number is standardized
 
     if not sql.existing_user(phone_number, connection):
-        message = ("Welcome to Lost in Phone! "
+        message = ("Welcome to Lost-n-Phoned! "
                    "Please click the link below to get started: "
                    "http://lostnphoned.com/authorize?phone={}"
                    .format(phone_number))
     else:
-        # Load credentials from the database.
-        credentials_dict = sql.get_credentials(phone_number, connection)
-        credentials = google.oauth2.credentials.Credentials(
-            **credentials_dict)
-
-        people = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-        # Save credentials back to database in case access token was refreshed.
-        sql.update_user(phone_number, credentials, connection)
-
-        try:
-            results = people.people().connections().list(
-                resourceName='people/me',
-                pageSize=2000,
-                personFields='names,phoneNumbers').execute()
-        except google.auth.exceptions.RefreshError:
-            print("Expired token error encountered. Removing user.")
-            sql.remove_user(phone_number, connection)
-            message = ("Welcome to Lost in Phone! "
-                       "Please click the link below to get started: "
-                       "http://lostnphoned.com/authorize?phone={}"
-                       .format(phone_number))
-        except google.auth.exceptions.GoogleAuthError as error:
-            print(error)
-            message = "An error occurred. Please try again later."
-        else:
-            # Find the desired person's phone number
-            query = " ".join(words[1:]).lower()
-            exact_matches = []
-            word_matches = {}
-            contacts = {}
-            for person in results['connections']:
-                name = person['names'][0]['displayName']
-                number = person['phoneNumbers'][0]['value']
-
-                if query == name.lower():
-                    exact_matches.append((name, number))
-                elif not exact_matches and sublist(
-                        [item.lower() for item in words[1:]],
-                        name.lower().split(" ")):
-                    word_matches[name] = number
-                elif not word_matches and not exact_matches:
-                    contacts[name] = number
-
-            if exact_matches:
-                message = ""
-                count = 0
-                for key, value in exact_matches:
-                    message += "{}: {}\n".format(key, value)
-                    count += 1
-                    if count >= 5:
-                        break
-            elif word_matches:
-                message = ""
-                count = 0
-                for key, value in word_matches.items():
-                    message += "{}: {}\n".format(key, value)
-                    count += 1
-                    if count >= 5:
-                        break
-            else:
-                lowered = {name.lower():name for name in contacts}
-                names = difflib.get_close_matches(query, lowered.keys(), cutoff=0.33)
-                if names:
-                    message = "Contact not found. Similar results:\n"
-                    for name in names:
-                        message += "{}: {}\n".format(lowered[name], contacts[lowered[name]])
-                else:
-                    message = "Contact not found."
+        message = get_contacts(words, connection)
 
     connection.close()
     resp.message(message)
@@ -191,6 +131,92 @@ def oauth2callback():
     return flask.redirect(flask.url_for('authorize_success'))
 
 
+def get_contacts(words, connection):
+    """Return the user's desired contact in a message."""
+    phone_number = words[0]
+
+    # Load credentials from the database.
+    credentials_dict = sql.get_credentials(phone_number, connection)
+    credentials = google.oauth2.credentials.Credentials(
+        **credentials_dict)
+
+    people = googleapiclient.discovery.build(
+        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+    # Save credentials back to database in case access token was refreshed.
+    sql.update_user(phone_number, credentials, connection)
+
+    try:
+        results = people.people().connections().list(
+            resourceName='people/me',
+            pageSize=2000,
+            personFields='names,phoneNumbers').execute()
+    except google.auth.exceptions.RefreshError:
+        print("Expired token error encountered. Removing user.")
+        sql.remove_user(phone_number, connection)
+        message = ("Welcome to Lost-n-Phoned! "
+                   "Please click the link below to get started: "
+                   "http://lostnphoned.com/authorize?phone={}"
+                   .format(phone_number))
+    except google.auth.exceptions.GoogleAuthError as error:
+        print(error)
+        message = "An error occurred. Please try again later."
+    else:
+        message = search_contacts(words, results)
+
+    return message
+
+
+def search_contacts(words, results):
+    """Find the desired contact's phone number."""
+
+    query = " ".join(words[1:]).lower()
+    exact_matches = []
+    word_matches = {}
+    contacts = {}
+    for person in results['connections']:
+        try:
+            name = person['names'][0]['displayName']
+            number = person['phoneNumbers'][0]['value']
+        except KeyError:
+            continue
+
+        if query == name.lower():
+            exact_matches.append((name, number))
+        elif not exact_matches and sublist(
+                [item.lower() for item in words[1:]],
+                name.lower().split(" ")):
+            word_matches[name] = number
+        elif not word_matches and not exact_matches:
+            contacts[name] = number
+
+    message = ""
+    count = 0
+    if exact_matches:
+        for key, value in exact_matches:
+            message += "{}: {}\n".format(key, value)
+            count += 1
+            if count >= 5:
+                break
+    elif word_matches:
+        for key, value in word_matches.items():
+            message += "{}: {}\n".format(key, value)
+            count += 1
+            if count >= 5:
+                break
+    else:
+        lowered = {name.lower():name for name in contacts}
+        names = difflib.get_close_matches(query, lowered.keys(), cutoff=0.33)
+        if names:
+            message = "Contact not found. Similar results:\n"
+            for name in names:
+                message += "{}: {}\n".format(lowered[name], contacts[lowered[name]])
+        else:
+            message = "Contact not found."
+
+    return message
+
+
 def sublist(ls1, ls2):
     # modified from https://stackoverflow.com/a/35964184
     '''
@@ -226,4 +252,5 @@ if __name__ == '__main__':
 
     # Specify a hostname and port that are set as a valid redirect URI
     # for your API project in the Google API Console.
-    app.run('0.0.0.0', 80)
+    app.run('localhost', 8080)
+    # Testing automated deployment.
