@@ -18,3 +18,6 @@ except OSError:
     pass
 
 import lostnphoned.sms
+
+from . import sql
+sql.init_app(app)
