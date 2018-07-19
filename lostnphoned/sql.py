@@ -1,17 +1,34 @@
-""" Process the user in the database """
+"""Handles all database functionality."""
 
 import random
-import pymysql
+import sqlite3
+import click
+from flask import current_app
+from flask.cli import with_appcontext
+
+
+@click.command('init-db')
+@with_appcontext
+def init_db_command():
+    """Clear the existing data and create new tables."""
+    init_db()
+    click.echo('Initialized the database.')
+
+
+def init_db():
+    connection = connect()
+
+    with current_app.open_resource('schema.sql') as f:
+        connection.executescript(f.read().decode('utf8'))
 
 
 def connect():
     """Connect to the database. Returns connection object."""
-    connection = pymysql.connect(host='localhost',
-                                 user='MySQL_username_here',
-                                 password='',
-                                 db='lostnphoned',
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+    connection = sqlite3.connect(
+        current_app.config['DATABASE'],
+        detect_types=sqlite3.PARSE_DECLTYPES
+    )
+    connection.row_factory = sqlite3.Row
     return connection
 
 
@@ -22,9 +39,9 @@ def existing_user(number: str, connection) -> bool:
 
     with connection.cursor() as cursor:
 
-        query = "SELECT * FROM users WHERE phone_number = %s"
+        query = "SELECT * FROM users WHERE phone_number = ?"
 
-        cursor.execute(query, (number))
+        cursor.execute(query, (number,))
 
         data = cursor.fetchall()
 
@@ -42,9 +59,9 @@ def get_credentials(number: str, connection) -> dict:
                  "client_id, "
                  "client_secret, "
                  "scopes "
-                 "FROM users WHERE phone_number = %s")
+                 "FROM users WHERE phone_number = ?")
 
-        cursor.execute(query, (number))
+        cursor.execute(query, (number,))
 
         return cursor.fetchone()
 
@@ -54,15 +71,15 @@ def add_user(number: str, credentials, connection):
     with connection.cursor() as cursor:
 
         command = ("INSERT INTO users "
-                   "VALUES (%s, %s, %s, %s, %s, %s, %s)")
+                   "VALUES (?, ?, ?, ?, ?, ?, ?)")
 
-        data = [number,
+        data = (number,
                 credentials.token,
                 credentials.refresh_token,
                 credentials.token_uri,
                 credentials.client_id,
                 credentials.client_secret,
-                credentials.scopes]
+                credentials.scopes) # is scopes necessary? not sure how to store in table since it's iterable
 
         cursor.execute(command, data)
         connection.commit()
@@ -76,13 +93,13 @@ def update_user(number: str, credentials, connection):
         data['number'] = number
 
         command = ("UPDATE users "
-                   "SET token = %(token)s, "
-                   "refresh_token = %(refresh_token)s, "
-                   "token_uri = %(token_uri)s, "
-                   "client_id = %(client_id)s, "
-                   "client_secret = %(client_secret)s, "
-                   "scopes = %(scopes)s "
-                   "WHERE phone_number = %(number)s")
+                   "SET token = :token, "
+                   "refresh_token = :refresh_token, "
+                   "token_uri = :token_uri, "
+                   "client_id = :client_id, "
+                   "client_secret = :client_secret, "
+                   "scopes = :scopes "
+                   "WHERE phone_number = :number")
 
         cursor.execute(command, data)
         connection.commit()
@@ -92,9 +109,9 @@ def remove_user(number: str, connection):
     """Remove a user from the database."""
     with connection.cursor() as cursor:
 
-        command = "DELETE FROM users WHERE phone_number = %s"
+        command = "DELETE FROM users WHERE phone_number = ?"
 
-        cursor.execute(command, (number))
+        cursor.execute(command, (number,))
         connection.commit()
 
 
@@ -105,9 +122,9 @@ def validate_passphrase(number, public_key, password_attempt, connection):
     assert type(public_key) == int and type(password_attempt) == int, "numerical inputs are not ints!"
     with connection.cursor() as cursor:
 
-        query = "SELECT security FROM `mainData` WHERE `phone_number` = %s "
+        query = "SELECT security FROM `mainData` WHERE `phone_number` = ?"
 
-        cursor.execute(query, (number))
+        cursor.execute(query, (number,))
 
         private_key = int(cursor.fetchall()[0]['security'])
         # print(private_key)
@@ -132,6 +149,7 @@ def credentials_to_dict(credentials):
             'scopes': credentials.scopes}
 
 
+'''
 def main(number):
     assert type(number) == str, "number input is not a string"
     connection = connect()
@@ -171,3 +189,4 @@ def main(number):
                     tries -= 1
                     print("Incorrect password; please try again.")
     print("Full program completed. Goodbye.")
+'''

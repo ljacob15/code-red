@@ -1,14 +1,5 @@
 """Handles SMS messages to and from users."""
 
-# The following pip packages are required:
-
-# google-api-python-client
-# google-auth
-# google-auth-oauthlib
-# google-auth-httplib2
-# flask
-# requests
-
 import os
 import difflib
 import flask
@@ -19,7 +10,8 @@ import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 
-import sql
+from lostnphoned import app
+from lostnphoned import sql
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -30,12 +22,6 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 SCOPES = ['https://www.googleapis.com/auth/contacts.readonly']
 API_SERVICE_NAME = 'people'
 API_VERSION = 'v1'
-
-app = flask.Flask(__name__)
-# Note: A secret key is included in the sample so that it works.
-# If you use this code in your application, replace this with a truly secret
-# key. See http://flask.pocoo.org/docs/0.12/quickstart/#sessions.
-app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 
 
 @app.route('/')
@@ -57,6 +43,8 @@ def message_received():
     connection = sql.connect()
 
     # Add checks to ensure phone_number is standardized
+    # 11 characters: E.164 formatting WITHOUT the +
+    # https://github.com/daviddrysdale/python-phonenumbers
 
     if not sql.existing_user(phone_number, connection):
         message = ("Welcome to Lost-n-Phoned! "
@@ -242,15 +230,3 @@ def sublist(ls1, ls2):
         match = True
 
     return match
-
-
-if __name__ == '__main__':
-    # When running locally, disable OAuthlib's HTTPs verification.
-    # ACTION ITEM for developers:
-    #     When running in production *do not* leave this option enabled.
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
-
-    # Specify a hostname and port that are set as a valid redirect URI
-    # for your API project in the Google API Console.
-    app.run('localhost', 8080)
-    # Testing automated deployment.
