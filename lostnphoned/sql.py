@@ -41,82 +41,82 @@ def existing_user(number: str, connection) -> bool:
 
     Returns True if the number is found, False if not."""
 
-    with connection.cursor() as cursor:
+    cursor = connection.cursor()
 
-        query = "SELECT * FROM users WHERE phone_number = ?"
+    query = "SELECT * FROM users WHERE phone_number = ?"
 
-        cursor.execute(query, (number,))
+    cursor.execute(query, (number,))
 
-        data = cursor.fetchall()
+    data = cursor.fetchall()
 
-        return bool(data)
+    return bool(data)
 
 
 def get_credentials(number: str, connection) -> dict:
     """Retrieve the credentials associated with a user's phone number."""
 
-    with connection.cursor() as cursor:
+    cursor = connection.cursor()
 
-        query = ("SELECT token, "
-                 "refresh_token, "
-                 "token_uri, "
-                 "client_id, "
-                 "client_secret, "
-                 "scopes "
-                 "FROM users WHERE phone_number = ?")
+    query = ("SELECT token, "
+                "refresh_token, "
+                "token_uri, "
+                "client_id, "
+                "client_secret, "
+                "scopes "
+                "FROM users WHERE phone_number = ?")
 
-        cursor.execute(query, (number,))
+    cursor.execute(query, (number,))
 
-        return cursor.fetchone()
+    return cursor.fetchone()
 
 
 def add_user(number: str, credentials, connection):
     """Add a user's phone number to the database."""
-    with connection.cursor() as cursor:
+    cursor = conneciton.cursor()
 
-        command = ("INSERT INTO users "
-                   "VALUES (?, ?, ?, ?, ?, ?, ?)")
+    command = ("INSERT INTO users "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)")
 
-        data = (number,
-                credentials.token,
-                credentials.refresh_token,
-                credentials.token_uri,
-                credentials.client_id,
-                credentials.client_secret,
-                credentials.scopes) # is scopes necessary? not sure how to store in table since it's iterable
+    data = (number,
+            credentials.token,
+            credentials.refresh_token,
+            credentials.token_uri,
+            credentials.client_id,
+            credentials.client_secret,
+            credentials.scopes) # is scopes necessary? not sure how to store in table since it's iterable
 
-        cursor.execute(command, data)
-        connection.commit()
+    cursor.execute(command, data)
+    connection.commit()
 
 
 def update_user(number: str, credentials, connection):
     """Update a user's credentials."""
-    with connection.cursor() as cursor:
+    cursor = connection.cursor()
 
-        data = credentials_to_dict(credentials)
-        data['number'] = number
+    data = credentials_to_dict(credentials)
+    data['number'] = number
 
-        command = ("UPDATE users "
-                   "SET token = :token, "
-                   "refresh_token = :refresh_token, "
-                   "token_uri = :token_uri, "
-                   "client_id = :client_id, "
-                   "client_secret = :client_secret, "
-                   "scopes = :scopes "
-                   "WHERE phone_number = :number")
+    command = ("UPDATE users "
+                "SET token = :token, "
+                "refresh_token = :refresh_token, "
+                "token_uri = :token_uri, "
+                "client_id = :client_id, "
+                "client_secret = :client_secret, "
+                "scopes = :scopes "
+                "WHERE phone_number = :number")
 
-        cursor.execute(command, data)
-        connection.commit()
+    cursor.execute(command, data)
+    connection.commit()
 
 
 def remove_user(number: str, connection):
     """Remove a user from the database."""
-    with connection.cursor() as cursor:
+    cursor = connection.cursor()
 
-        command = "DELETE FROM users WHERE phone_number = ?"
+    command = "DELETE FROM users WHERE phone_number = ?"
 
-        cursor.execute(command, (number,))
-        connection.commit()
+    cursor.execute(command, (number,))
+    connection.commit()
 
 
 def validate_passphrase(number, public_key, password_attempt, connection):
