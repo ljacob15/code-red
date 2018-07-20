@@ -72,7 +72,7 @@ def get_credentials(number: str, connection) -> dict:
 
 def add_user(number: str, credentials, connection):
     """Add a user's phone number to the database."""
-    cursor = conneciton.cursor()
+    cursor = connection.cursor()
 
     command = ("INSERT INTO users "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)")
