@@ -80,6 +80,7 @@ def authorize():
     flask.session['state'] = state
 
     # Store the user's phone number (from the request parameter) for the callback to use.
+    # Add phone number validation here
     flask.session['phone_number'] = flask.request.args.get('phone', type=str)
 
     return flask.redirect(authorization_url)
