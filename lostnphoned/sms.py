@@ -59,13 +59,6 @@ def message_received():
     return str(resp)
 
 
-@app.route('/authorize-success')
-def authorize_success():
-    """Authorization success page."""
-
-    return "Authorization success!"
-
-
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
@@ -117,6 +110,13 @@ def oauth2callback():
     connection.close()
 
     return flask.redirect(flask.url_for('authorize_success'))
+
+
+@app.route('/authorize-success')
+def authorize_success():
+    """Authorization success page."""
+
+    return "Authorization success!"
 
 
 def get_contacts(words, connection):
