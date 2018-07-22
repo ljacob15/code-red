@@ -129,7 +129,8 @@ def get_contacts(words, connection):
         **credentials_dict)
 
     people = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials)
+        API_SERVICE_NAME, API_VERSION, credentials=credentials,
+        cache_discovery=False)
 
     # Save credentials back to database in case access token was refreshed.
     sql.update_user(phone_number, credentials, connection)
