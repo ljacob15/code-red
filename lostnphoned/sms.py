@@ -54,7 +54,7 @@ def message_received():
     elif len(words) == 0 or words[1] == "":
         message = "You did not specify a contact name to search for."
     else:
-        message = get_contacts(words, connection)
+        message = query_contacts(words, connection)
 
     connection.close()
     resp.message(message)
@@ -122,7 +122,7 @@ def authorize_success():
     return "Authorization success!"
 
 
-def get_contacts(words, connection):
+def query_contacts(words, connection):
     """Return the user's desired contact in a message."""
     phone_number = words[0]
 
