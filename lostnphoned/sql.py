@@ -61,8 +61,7 @@ def get_credentials(number: str, connection) -> dict:
                 "refresh_token, "
                 "token_uri, "
                 "client_id, "
-                "client_secret, "
-                "scopes "
+                "client_secret "
                 "FROM users WHERE phone_number = ?")
 
     cursor.execute(query, (number,))
@@ -75,15 +74,14 @@ def add_user(number: str, credentials, connection):
     cursor = connection.cursor()
 
     command = ("INSERT INTO users "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)")
+                "VALUES (?, ?, ?, ?, ?, ?)")
 
     data = (number,
             credentials.token,
             credentials.refresh_token,
             credentials.token_uri,
             credentials.client_id,
-            credentials.client_secret,
-            credentials.scopes) # is scopes necessary? not sure how to store in table since it's iterable
+            credentials.client_secret)
 
     cursor.execute(command, data)
     connection.commit()
@@ -101,8 +99,7 @@ def update_user(number: str, credentials, connection):
                 "refresh_token = :refresh_token, "
                 "token_uri = :token_uri, "
                 "client_id = :client_id, "
-                "client_secret = :client_secret, "
-                "scopes = :scopes "
+                "client_secret = :client_secret "
                 "WHERE phone_number = :number")
 
     cursor.execute(command, data)
@@ -149,8 +146,7 @@ def credentials_to_dict(credentials):
             'refresh_token': credentials.refresh_token,
             'token_uri': credentials.token_uri,
             'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes}
+            'client_secret': credentials.client_secret}
 
 
 '''

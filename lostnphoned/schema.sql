@@ -6,6 +6,5 @@ CREATE TABLE users (
   refresh_token TEXT,
   token_uri TEXT NOT NULL,
   client_id TEXT NOT NULL,
-  client_secret TEXT NOT NULL,
-  scopes TEXT
+  client_secret TEXT NOT NULL
 );
