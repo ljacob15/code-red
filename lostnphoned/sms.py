@@ -51,6 +51,8 @@ def message_received():
                    "Please click the link below to get started: "
                    "http://lostnphoned.com/authorize?phone={}"
                    .format(phone_number))
+    elif len(words) == 0 or words[1] == "":
+        message = "You did not specify a contact name to search for."
     else:
         message = get_contacts(words, connection)
 
