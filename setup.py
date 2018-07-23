@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="lost-n-phoned",
-    version="0.1.1",
+    version="0.1.2",
     description="Get your contacts from a stranger's phone",
     long_description=long_description,
     long_description_content_type="text/markdown",
