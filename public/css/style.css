@@ -1,0 +1,89 @@
+html {
+    font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3,
+h4, h5, h6 {
+    font-family: 'Cabin Sketch', cursive;
+}
+
+footer {
+    margin-top: 100px;
+}
+
+.container {
+    width: 16.75em;
+    margin: auto;
+}
+
+.title {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: left;
+    margin-top: 0px;
+    display: inline-block;
+    /*width: 265px;*/
+    /*width: 14.2em;*/
+}
+
+.text-message-container {
+    position: relative;
+    width: 100%;
+}
+
+#text-message1 {
+    position: absolute;
+    top: 8px;
+    right: 32px;
+}
+
+#text-message2 {
+    position: absolute;
+    top: 8px;
+    left: 45px;
+}
+
+#text-message3 {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+}
+
+#text-message4 {
+    position: absolute;
+    top: 8px;
+    left: 45px;
+}
+
+
+@media (min-width: 30em) {
+    .container {
+        width: 26.1em;
+    }
+}
+
+/* Utility Classes */
+.reset-link {
+    text-decoration: none;
+    color: black;
+}
+
+.image-flip {
+    transform: scaleX(-1);
+}
+
+.text-align-right {
+    text-align: right;
+}
+
+.no-margin-bottom {
+    margin-bottom: 0px;
+}
+
+.text-align-center {
+    text-align: center;
+}

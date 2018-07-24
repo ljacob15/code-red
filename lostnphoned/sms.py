@@ -24,13 +24,6 @@ API_SERVICE_NAME = 'people'
 API_VERSION = 'v1'
 
 
-@app.route('/')
-def index():
-    """This page currently has no purpose."""
-
-    return ""
-
-
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
@@ -112,14 +105,7 @@ def oauth2callback():
     sql.add_user(phone_number, credentials, connection)
     connection.close()
 
-    return flask.redirect(flask.url_for('authorize_success'))
-
-
-@app.route('/authorize-success')
-def authorize_success():
-    """Authorization success page."""
-
-    return "Authorization success!"
+    return flask.redirect('/authorize-success')
 
 
 def query_contacts(words, connection):
