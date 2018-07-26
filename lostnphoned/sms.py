@@ -69,7 +69,14 @@ def authorize():
         # re-prompting the user for permission. Recommended for web server apps.
         access_type='offline',
         # Enable incremental authorization. Recommended as a best practice.
-        include_granted_scopes='true')
+        include_granted_scopes='true',
+        # Get a refresh token even if user has somehow authorized before.
+        # In that case, either Lost-n-Phoned has lost the refresh token or
+        # the user is registering another phone number with the same Google
+        # account. Doing so could disable the user's previously registered
+        # number because that number's associated refresh_token may be
+        # invalidated by Google.
+        prompt='consent')
 
     # Store the state so the callback can verify the auth server response.
     flask.session['state'] = state
