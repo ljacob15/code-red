@@ -28,7 +28,6 @@ API_VERSION = 'v1'
 @app.route("/twilio", methods=['GET', 'POST'])
 def message_received():
     """Reply to a user via SMS."""
-    #from_number = flask.request.values.get('From', None)
 
     message_body = flask.request.form['Body']
     words = message_body.split(" ")
