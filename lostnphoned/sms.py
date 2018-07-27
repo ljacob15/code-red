@@ -34,18 +34,12 @@ def message_received():
     phone_number = words[0]
     resp = MessagingResponse()
     connection = sql.connect()
-    good_number = True
 
     if words[0].lower() == "register":
         from_number = flask.request.values.get('From', None)
-        try:
-            phone_number_obj = phonenumbers.parse(from_number, region="US")
-        except phonenumbers.NumberParseException:
-            good_number = False
-        else:
-            good_number = phonenumbers.is_possible_number(phone_number_obj)
+        phone_number_obj = get_phone_number_obj(from_number)
 
-        if good_number:
+        if phone_number_obj:
             phone_number_e164 = phonenumbers.format_number(
                 phone_number_obj,
                 phonenumbers.PhoneNumberFormat.E164
@@ -64,14 +58,9 @@ def message_received():
             message = ("Error: Lost-n-Phoned could not determine "
                        "your phone number.")
     else:
-        try:
-            phone_number_obj = phonenumbers.parse(phone_number, region="US")
-        except phonenumbers.NumberParseException:
-            good_number = False
-        else:
-            good_number = phonenumbers.is_possible_number(phone_number_obj)
+        phone_number_obj = get_phone_number_obj(phone_number)
 
-        if good_number:
+        if phone_number_obj:
             phone_number_e164 = phonenumbers.format_number(
                 phone_number_obj,
                 phonenumbers.PhoneNumberFormat.E164
@@ -179,6 +168,19 @@ def oauth2callback():
     connection.close()
 
     return flask.redirect('/authorize-success')
+
+def get_phone_number_obj(phone_number):
+    """Returns phonenumbers.PhoneNumber object if possible,
+    or None if the input could not possibly be a phone number."""
+    try:
+        phone_number_obj = phonenumbers.parse(phone_number, region="US")
+    except phonenumbers.NumberParseException:
+        return None
+
+    if not phonenumbers.is_possible_number(phone_number_obj):
+        return None
+
+    return phone_number_obj
 
 
 def query_contacts(phone_number, query, connection):
