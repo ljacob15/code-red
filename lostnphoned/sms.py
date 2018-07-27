@@ -35,53 +35,58 @@ def message_received():
     phone_number = words[0]
     resp = MessagingResponse()
     connection = sql.connect()
+    good_number = True
 
     if words[0].lower() == "register":
         from_number = flask.request.values.get('From', None)
         try:
             phone_number_obj = phonenumbers.parse(from_number, region="US")
         except phonenumbers.NumberParseException:
-            message = ("Error: Lost-n-Phoned could not determine "
-                       "your phone number.")
+            good_number = False
         else:
-            if not phonenumbers.is_possible_number(phone_number_obj):
-                message = ("Error: Lost-n-Phoned could not determine "
-                           "your phone number.")
-            else:
-                phone_number_e164 = phonenumbers.format_number(
-                    phone_number_obj,
-                    phonenumbers.PhoneNumberFormat.E164
-                )
-                message = (
-                    "Welcome to Lost-n-Phoned! "
-                    "Please click the link below to get started: {}"
-                    .format(
-                        flask.url_for('authorize',
-                                      phone=phone_number_e164,
-                                      _external=True)
-                    )
-                )
-    else:
-        try:
-            phone_number_obj = phonenumbers.parse(phone_number, region="US")
-        except phonenumbers.NumberParseException:
-            message = ("Visit https://lostnphoned.com/ "
-                       "to learn how to use this service.")
-        else:
+            good_number = phonenumbers.is_possible_number(phone_number_obj)
+
+        if good_number:
             phone_number_e164 = phonenumbers.format_number(
                 phone_number_obj,
                 phonenumbers.PhoneNumberFormat.E164
             )
-            if not phonenumbers.is_possible_number(phone_number_obj):
-                message = ("Visit https://lostnphoned.com/ "
-                           "to learn how to use this service.")
-            elif not sql.existing_user(phone_number_e164, connection):
+            if sql.existing_user(phone_number_e164, connection):
+                message = "This phone number has already been registered."
+            else:
+                message = (
+                    "Welcome to Lost-n-Phoned! "
+                    "Please click the link below to get started: {}"
+                    .format(
+                        flask.url_for('authorize', phone=phone_number_e164, _external=True)
+                    )
+                )
+        else:
+            message = ("Error: Lost-n-Phoned could not determine "
+                       "your phone number.")
+    else:
+        try:
+            phone_number_obj = phonenumbers.parse(phone_number, region="US")
+        except phonenumbers.NumberParseException:
+            good_number = False
+        else:
+            good_number = phonenumbers.is_possible_number(phone_number_obj)
+
+        if good_number:
+            phone_number_e164 = phonenumbers.format_number(
+                phone_number_obj,
+                phonenumbers.PhoneNumberFormat.E164
+            )
+            if not sql.existing_user(phone_number_e164, connection):
                 message = ("The phone number provided has not been "
                            "registered with Lost-n-Phoned.")
             elif len(words) == 1 or words[1] == "":
                 message = "You did not specify a contact name to search for."
             else:
                 message = query_contacts(phone_number_e164, words[1:], connection)
+        else:
+            message = ("Visit https://lostnphoned.com/ "
+                       "to learn how to use this service.")
 
     connection.close()
     resp.message(message)
