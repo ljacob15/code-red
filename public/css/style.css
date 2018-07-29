@@ -35,28 +35,41 @@ footer {
     width: 100%;
 }
 
-#text-message1 {
+#text-message-register {
     position: absolute;
     top: 8px;
     right: 75px;
 }
 
-#text-message2 {
+#text-message-link {
     position: absolute;
     top: 8px;
     left: 45px;
 }
 
-#text-message3 {
+#text-message-add-password {
+    position: absolute;
+    top: 8px;
+    right: 40px;
+}
+
+#text-message-query,
+#text-message-query2 {
+    position: absolute;
+    top: 8px;
+    right: 75px;
+}
+
+#text-message-response {
+    position: absolute;
+    top: 8px;
+    left: 45px;
+}
+
+#text-message-response2 {
     position: absolute;
     top: 18px;
-    right: 22px;
-}
-
-#text-message4 {
-    position: absolute;
-    top: 8px;
-    left: 45px;
+    left: 40px;
 }
 
 

@@ -1,5 +1,7 @@
 """Handles all database functionality."""
 
+import os
+import hashlib
 import sqlite3
 import click
 from flask import current_app
@@ -34,6 +36,10 @@ def connect():
         detect_types=sqlite3.PARSE_DECLTYPES
     )
     connection.row_factory = sqlite3.Row
+
+    # Enable foreign key support
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.commit()
     return connection
 
 
@@ -75,14 +81,15 @@ def add_user(number: str, credentials, connection):
     cursor = connection.cursor()
 
     command = ("INSERT INTO users "
-               "VALUES (?, ?, ?, ?, ?, ?)")
+               "VALUES (?, ?, ?, ?, ?, ?, ?)")
 
     data = (number,
             credentials.token,
             credentials.refresh_token,
             credentials.token_uri,
             credentials.client_id,
-            credentials.client_secret)
+            credentials.client_secret,
+            os.urandom(16))
 
     cursor.execute(command, data)
     connection.commit()
@@ -114,6 +121,67 @@ def remove_user(number: str, connection):
     command = "DELETE FROM users WHERE phone_number = ?"
 
     cursor.execute(command, (number,))
+    connection.commit()
+
+
+def add_password(number: str, password: str, connection):
+    """Add a password to a user."""
+
+    # Get salt from users table
+    cursor = connection.cursor()
+    command = "SELECT salt FROM users WHERE phone_number = ?"
+    cursor.execute(command, (number,))
+    salt = cursor.fetchone()[0]
+
+    # Hash the password with the salt
+    hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
+
+    # Store password into passwords table
+    cursor = connection.cursor()
+    command = ("INSERT INTO passwords (phone_number, password) "
+               "VALUES (?, ?)")
+    cursor.execute(command, (number, hashed))
+    connection.commit()
+
+
+def password_match(number: str, password: str, connection):
+    """Check if the input matches a password for number.
+    Returns a bool."""
+
+    # Get salt from users table
+    cursor = connection.cursor()
+    command = "SELECT salt FROM users WHERE phone_number = ?"
+    cursor.execute(command, (number,))
+    salt = cursor.fetchone()[0]
+
+    # Hash the inputted password attempt with the salt
+    hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
+
+    # Search database for hashed password attempt
+    cursor = connection.cursor()
+    command = ("SELECT * FROM passwords "
+               "WHERE phone_number = ? AND password = ?")
+    cursor.execute(command, (number, hashed))
+    return bool(cursor.fetchone())
+
+
+def remove_password(number: str, password: str, connection):
+    """Remove the given password from the database."""
+
+    # Get salt from users table
+    cursor = connection.cursor()
+    command = "SELECT salt FROM users WHERE phone_number = ?"
+    cursor.execute(command, (number,))
+    salt = cursor.fetchone()[0]
+
+    # Hash the inputted password attempt with the salt
+    hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
+
+    # Search database for hashed password attempt
+    cursor = connection.cursor()
+    command = ("DELETE FROM passwords "
+               "WHERE phone_number = ? AND password = ?")
+    cursor.execute(command, (number, hashed))
     connection.commit()
 
 

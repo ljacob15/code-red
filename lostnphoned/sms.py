@@ -31,7 +31,6 @@ def message_received():
 
     message_body = flask.request.form['Body']
     words = message_body.split(" ")
-    phone_number = words[0]
     resp = MessagingResponse()
     connection = sql.connect()
 
@@ -49,16 +48,35 @@ def message_received():
             else:
                 message = (
                     "Welcome to Lost-n-Phoned! "
-                    "Please click the link below to get started: {}"
+                    "To create your account, please click the link and "
+                    "allow Lost-n-Phoned access to your Google contacts.\n"
+                    "After authorizing with Google, you will receive "
+                    "additional instructions on how to add a password. {}"
                     .format(
                         flask.url_for('authorize', phone=phone_number_e164, _external=True)
                     )
                 )
         else:
-            message = ("Error: Lost-n-Phoned could not determine "
-                       "your phone number.")
+            message = ("Lost-n-Phoned could not determine your phone number.")
+    elif words[0].lower() == "add":
+        from_number = flask.request.values.get('From', None)
+        phone_number_obj = get_phone_number_obj(from_number)
+
+        if phone_number_obj:
+            phone_number_e164 = phonenumbers.format_number(
+                phone_number_obj,
+                phonenumbers.PhoneNumberFormat.E164
+            )
+            if not sql.existing_user(phone_number_e164, connection):
+                message = ("This phone number has not been registered "
+                           "with Lost-n-Phoned.")
+            elif len(words) == 1 or words[1] == "":
+                message = "You did not specify a password to add."
+            else:
+                sql.add_password(phone_number_e164, words[1], connection)
+                message = "Password added."
     else:
-        phone_number_obj = get_phone_number_obj(phone_number)
+        phone_number_obj = get_phone_number_obj(words[0])
 
         if phone_number_obj:
             phone_number_e164 = phonenumbers.format_number(
@@ -68,10 +86,14 @@ def message_received():
             if not sql.existing_user(phone_number_e164, connection):
                 message = ("The phone number provided has not been "
                            "registered with Lost-n-Phoned.")
-            elif len(words) == 1 or words[1] == "":
-                message = "You did not specify a contact name to search for."
+            elif len(words) < 3 or words[1] == "" or words[2] == "":
+                message = "You are missing either a password or a name to search."
+            elif not sql.password_match(phone_number_e164, words[1], connection):
+                # Ban user
+                message = "Incorrect password."
             else:
-                message = query_contacts(phone_number_e164, words[1:], connection)
+                sql.remove_password(phone_number_e164, words[1], connection)
+                message = query_contacts(phone_number_e164, words[2:], connection)
         else:
             message = ("Visit https://lostnphoned.com/ "
                        "to learn how to use this service.")

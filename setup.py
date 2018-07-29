@@ -25,4 +25,5 @@ setup(
         "twilio",
         "phonenumberslite"
     ],
+    python_requires=">=3.4",
 )
