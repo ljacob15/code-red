@@ -4,7 +4,6 @@ import os
 import difflib
 import flask
 import phonenumbers
-import schedule
 
 from twilio.twiml.messaging_response import MessagingResponse
 
