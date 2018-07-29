@@ -4,7 +4,7 @@ import os
 import hashlib
 import sqlite3
 import click
-from apscheduler.schedulers.background import BackgroundScheduler
+import schedule
 from flask import current_app
 from flask.cli import with_appcontext
 
@@ -12,9 +12,9 @@ from flask.cli import with_appcontext
 def init_app(app):
     """Set up module functionalities."""
     app.cli.add_command(init_db_command)
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(remove_clients, 'interval', days=1)
-    scheduler.start()
+
+    # Set up periodic SQL operation
+    schedule.every().day.do(remove_clients)
 
 
 @click.command('init-db')

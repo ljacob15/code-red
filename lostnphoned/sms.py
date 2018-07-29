@@ -4,6 +4,7 @@ import os
 import difflib
 import flask
 import phonenumbers
+import schedule
 
 from twilio.twiml.messaging_response import MessagingResponse
 
@@ -23,6 +24,13 @@ CLIENT_SECRETS_FILE = os.path.join(app.instance_path, "client_secret.json")
 SCOPES = ['https://www.googleapis.com/auth/contacts.readonly']
 API_SERVICE_NAME = 'people'
 API_VERSION = 'v1'
+
+
+@app.before_request
+def before_request_callback():
+    """Tasks that are run when any request is made,
+    before the callback function is run."""
+    schedule.run_pending()
 
 
 @app.route("/twilio", methods=['GET', 'POST'])

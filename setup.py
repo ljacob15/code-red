@@ -24,7 +24,7 @@ setup(
         "google-api-python-client",
         "twilio",
         "phonenumberslite",
-        "apscheduler"
+        "schedule"
     ],
     python_requires=">=3.4",
 )
