@@ -2,6 +2,7 @@
 
 import os
 import difflib
+import uuid
 import flask
 import phonenumbers
 import schedule
@@ -58,6 +59,15 @@ def message_received():
             if sql.existing_user(phone_number_e164, connection):
                 message = "This phone number has already been registered."
             else:
+                # Remove old ID from database if it's there (user wants a new URL)
+                sql.remove_register_id(phone_number_e164, connection)
+
+                # Generate unique ID
+                clientid = generate_clientid()
+
+                # Add ID to database
+                sql.add_register_id(clientid, phone_number_e164, connection)
+
                 message = (
                     "Welcome to Lost-n-Phoned! "
                     "To create your account, please click the link and "
@@ -65,7 +75,7 @@ def message_received():
                     "After authorizing with Google, you will receive "
                     "additional instructions on how to add a password. {}"
                     .format(
-                        flask.url_for('authorize', phone=phone_number_e164, _external=True)
+                        flask.url_for('authorize', clientid=clientid, _external=True)
                     )
                 )
         else:
@@ -117,9 +127,38 @@ def message_received():
     return str(resp)
 
 
+def generate_clientid() -> str:
+    """Create a unique ID for the client using UUID."""
+    base16 = uuid.uuid4()
+    return int_to_base58(base16.int) # pylint: disable=E1101
+
+
+def int_to_base58(num: int) -> str:
+    """Convert an int to a base58 string."""
+    alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+    converted = ""
+    while num:
+        num, digit = divmod(num, 58)
+        converted += alphabet[digit]
+    return converted[::-1]
+
+
 @app.route('/authorize')
 def authorize():
     """Authorization link."""
+
+    connection = sql.connect()
+    clientid = flask.request.args.get('clientid', type=str)
+    if not clientid or not sql.get_register_number(clientid, connection):
+        return "Error: Invalid link or link expired."
+
+    # Get phone number corresponding to the clientid from the database
+    phone_number_e164 = sql.get_register_number(clientid, connection)
+
+    # Remove the link immediately to prevent the user from clicking the
+    # link multiple times and potentially getting through OAuth multiple
+    # times.
+    sql.remove_register_id(phone_number_e164, connection)
 
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
@@ -145,30 +184,7 @@ def authorize():
     flask.session['state'] = state
 
     # Store the user's phone number (from the request parameter) for the callback to use.
-
-    phone_number = flask.request.args.get('phone', type=str)
-    try:
-        phone_number_obj = phonenumbers.parse(phone_number)
-        # Region is None because the number should already be in E164
-    except phonenumbers.NumberParseException:
-        return "Error: Invalid phone number."
-
-    if not phonenumbers.is_valid_number(phone_number_obj):
-        return "Error: Invalid phone number."
-
-    phone_number_e164 = phonenumbers.format_number(
-        phone_number_obj,
-        phonenumbers.PhoneNumberFormat.E164
-    )
-
-    # Check if phone number is already registered, to prevent
-    # SQLite UNIQUE constraint error. This could happen if the user
-    # clicks the link multiple times.
-    connection = sql.connect()
-    if sql.existing_user(phone_number_e164, connection):
-        return "Error: You have already registered this phone number."
-
-    flask.session['phone_number'] = flask.request.args.get('phone', type=str)
+    flask.session['phone_number'] = phone_number_e164
     return flask.redirect(authorization_url)
 
 
@@ -179,7 +195,7 @@ def oauth2callback():
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
     state = flask.session['state']
-    phone_number = flask.session['phone_number'] # Guaranteed to be in E164
+    phone_number_e164 = flask.session['phone_number'] # Guaranteed to be in E164
 
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
@@ -190,20 +206,17 @@ def oauth2callback():
     flow.fetch_token(authorization_response=authorization_response)
     credentials = flow.credentials
 
-    # In case the phone number is already registered, clear the existing
-    # database entry to avoid SQLite3 UNIQUE constraint error.
-    # If we chose to not store anything, then the user would soon have
-    # to reregister from the start because the refresh token in
-    # the database has been invalidated, and the entry would be deleted.
+    # I don't think it's possible for the user to already be registered,
+    # but just in case...
     connection = sql.connect()
-    sql.remove_user(phone_number, connection) # No error even if number
-                                              # isn't in database
+    sql.remove_user(phone_number_e164, connection) # No error if user doesn't exist
 
     # Store credentials in the database.
-    sql.add_user(phone_number, credentials, connection)
+    sql.add_user(phone_number_e164, credentials, connection)
     connection.close()
 
     return flask.redirect('/authorize-success')
+
 
 def get_phone_number_obj(phone_number):
     """Returns phonenumbers.PhoneNumber object if possible,

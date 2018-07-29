@@ -15,6 +15,7 @@ def init_app(app):
 
     # Set up periodic SQL operation
     schedule.every().day.do(remove_clients)
+    schedule.every().hour.do(remove_register_ids)
 
 
 @click.command('init-db')
@@ -242,5 +243,55 @@ def remove_clients():
     cursor = connection.cursor()
     command = ("DELETE FROM bannable_clients "
                "WHERE last_attempt < DATETIME('now', '-7 days')")
+    cursor.execute(command)
+    connection.commit()
+
+
+def add_register_id(uuid: str, number: str, connection):
+    """Add a database entry for a uuid and phone number."""
+
+    cursor = connection.cursor()
+    command = ("INSERT INTO register_ids (uuid, phone_number) "
+               "VALUES (?, ?)")
+    cursor.execute(command, (uuid, number))
+    connection.commit()
+
+
+def remove_register_id(number: str, connection):
+    """Remove the uuid corresponding to the phone number
+    if it is in the database."""
+
+    cursor = connection.cursor()
+    command = ("DELETE FROM register_ids "
+               "WHERE phone_number = ?")
+    cursor.execute(command, (number,))
+    connection.commit()
+
+
+def get_register_number(uuid: str, connection):
+    """Get a phone number associated with a uuid.
+    Returns None if the uuid is not in the database
+    or is expired."""
+
+    cursor = connection.cursor()
+    command = ("SELECT phone_number FROM register_ids "
+               "WHERE uuid = ? AND created >= DATETIME('now', '-5 minutes')")
+    cursor.execute(command, (uuid,))
+
+    data = cursor.fetchone()
+
+    if data:
+        return data[0]
+
+    return None
+
+
+def remove_register_ids():
+    """Remove all expired uuids."""
+
+    connection = connect()
+    cursor = connection.cursor()
+    command = ("DELETE FROM register_ids "
+               "WHERE created < DATETIME('now', '-5 minutes')")
     cursor.execute(command)
     connection.commit()
