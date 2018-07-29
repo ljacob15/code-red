@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS passwords;
+DROP TABLE IF EXISTS bannable_clients;
 
 CREATE TABLE users (
   phone_number TEXT PRIMARY KEY,
