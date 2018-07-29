@@ -192,6 +192,9 @@ def authorize():
 def oauth2callback():
     """Obtain credentials."""
 
+    if flask.request.args.get('error', False):
+        return flask.redirect('/')
+
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
     state = flask.session['state']
