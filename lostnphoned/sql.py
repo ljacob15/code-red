@@ -114,6 +114,16 @@ def update_user(number: str, credentials, connection):
     connection.commit()
 
 
+def credentials_to_dict(credentials):
+    """Convert credentials to dictionary format."""
+
+    return {'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret}
+
+
 def remove_user(number: str, connection):
     """Remove a user from the database."""
     cursor = connection.cursor()
@@ -183,13 +193,3 @@ def remove_password(number: str, password: str, connection):
                "WHERE phone_number = ? AND password = ?")
     cursor.execute(command, (number, hashed))
     connection.commit()
-
-
-def credentials_to_dict(credentials):
-    """Convert credentials to dictionary format."""
-
-    return {'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret}
