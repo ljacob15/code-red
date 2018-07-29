@@ -23,7 +23,8 @@ setup(
         "google-auth-httplib2",
         "google-api-python-client",
         "twilio",
-        "phonenumberslite"
+        "phonenumberslite",
+        "apscheduler"
     ],
     python_requires=">=3.4",
 )

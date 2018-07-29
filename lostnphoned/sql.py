@@ -4,6 +4,7 @@ import os
 import hashlib
 import sqlite3
 import click
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
 from flask.cli import with_appcontext
 
@@ -11,6 +12,8 @@ from flask.cli import with_appcontext
 def init_app(app):
     """Set up module functionalities."""
     app.cli.add_command(init_db_command)
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(remove_clients, 'interval', days=1)
 
 
 @click.command('init-db')
@@ -147,7 +150,6 @@ def add_password(number: str, password: str, connection):
     hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
 
     # Store password into passwords table
-    cursor = connection.cursor()
     command = ("INSERT INTO passwords (phone_number, password) "
                "VALUES (?, ?)")
     cursor.execute(command, (number, hashed))
@@ -168,7 +170,6 @@ def password_match(number: str, password: str, connection):
     hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
 
     # Search database for hashed password attempt
-    cursor = connection.cursor()
     command = ("SELECT * FROM passwords "
                "WHERE phone_number = ? AND password = ?")
     cursor.execute(command, (number, hashed))
@@ -188,8 +189,57 @@ def remove_password(number: str, password: str, connection):
     hashed = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000)
 
     # Search database for hashed password attempt
-    cursor = connection.cursor()
     command = ("DELETE FROM passwords "
                "WHERE phone_number = ? AND password = ?")
     cursor.execute(command, (number, hashed))
+    connection.commit()
+
+
+def increment_client_attempts(number: str, connection):
+    """Increment the number of failed attempts a client has made.
+    If the client is not in the database, it is added."""
+
+    cursor = connection.cursor()
+
+    command = ("INSERT OR IGNORE INTO bannable_clients "
+               "(phone_number, attempts) VALUES (?, 0)")
+    cursor.execute(command, (number,))
+
+    command = ("UPDATE bannable_clients SET attempts = attempts + 1 "
+               "WHERE phone_number = ?")
+    cursor.execute(command, (number,))
+
+    command = ("UPDATE bannable_clients "
+               "SET last_attempt = CURRENT_TIMESTAMP "
+               "WHERE phone_number = ?")
+    cursor.execute(command, (number,))
+
+    connection.commit()
+
+
+def get_client_attempts(number: str, connection):
+    """Get how many failed attempts a client has made."""
+
+    cursor = connection.cursor()
+    command = ("SELECT attempts FROM bannable_clients "
+               "WHERE phone_number = ?")
+    cursor.execute(command, (number,))
+
+    data = cursor.fetchone()
+
+    if data: # fetchone() could return None
+        return data[0]
+
+    return 0
+
+
+def remove_clients():
+    """Remove clients for whom enough time
+    has passed from the database ."""
+
+    connection = connect()
+    cursor = connection.cursor()
+    command = ("DELETE FROM bannable_clients "
+               "WHERE last_attempt < DATETIME('now', '-7 days')")
+    cursor.execute(command)
     connection.commit()

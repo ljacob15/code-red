@@ -16,4 +16,9 @@ CREATE TABLE passwords (
   phone_number TEXT NOT NULL REFERENCES users(phone_number) ON UPDATE CASCADE ON DELETE CASCADE,
   password BLOB NOT NULL
 );
- 
+
+CREATE TABLE bannable_clients (
+  phone_number TEXT PRIMARY KEY,
+  last_attempt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  attempts INTEGER NOT NULL DEFAULT 1
+);

@@ -4,6 +4,7 @@ import os
 import difflib
 import flask
 import phonenumbers
+import schedule
 
 from twilio.twiml.messaging_response import MessagingResponse
 
@@ -33,9 +34,13 @@ def message_received():
     words = message_body.split(" ")
     resp = MessagingResponse()
     connection = sql.connect()
+    from_number = flask.request.values.get('From', None)
+
+    if sql.get_client_attempts(from_number, connection) > 1:
+        print("Ignoring message from banned client.")
+        return
 
     if words[0].lower() == "register":
-        from_number = flask.request.values.get('From', None)
         phone_number_obj = get_phone_number_obj(from_number)
 
         if phone_number_obj:
@@ -57,9 +62,8 @@ def message_received():
                     )
                 )
         else:
-            message = ("Lost-n-Phoned could not determine your phone number.")
+            message = "Lost-n-Phoned could not determine your phone number."
     elif words[0].lower() == "add":
-        from_number = flask.request.values.get('From', None)
         phone_number_obj = get_phone_number_obj(from_number)
 
         if phone_number_obj:
@@ -75,6 +79,8 @@ def message_received():
             else:
                 sql.add_password(phone_number_e164, words[1], connection)
                 message = "Password added."
+        else:
+            message = "Lost-n-Phoned could not determine your phone number."
     else:
         phone_number_obj = get_phone_number_obj(words[0])
 
@@ -89,7 +95,8 @@ def message_received():
             elif len(words) < 3 or words[1] == "" or words[2] == "":
                 message = "You are missing either a password or a name to search."
             elif not sql.password_match(phone_number_e164, words[1], connection):
-                # Ban user
+                sql.increment_client_attempts(from_number, connection)
+                # Don't care if from_number isn't valid, use whatever Twilio gives
                 message = "Incorrect password."
             else:
                 sql.remove_password(phone_number_e164, words[1], connection)
