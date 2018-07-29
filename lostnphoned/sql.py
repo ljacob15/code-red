@@ -14,6 +14,7 @@ def init_app(app):
     app.cli.add_command(init_db_command)
     scheduler = BackgroundScheduler()
     scheduler.add_job(remove_clients, 'interval', days=1)
+    scheduler.start()
 
 
 @click.command('init-db')
