@@ -45,7 +45,7 @@ def message_received():
 
     if sql.get_client_attempts(from_number, connection) > 1:
         print("Ignoring message from banned client.")
-        return
+        return ""
 
     if words[0].lower() == "register":
         phone_number_obj = get_phone_number_obj(from_number)
