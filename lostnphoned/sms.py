@@ -218,7 +218,7 @@ def oauth2callback():
     sql.add_user(phone_number_e164, credentials, connection)
     connection.close()
 
-    return flask.redirect('/authorize-success')
+    return flask.redirect('/success')
 
 
 def get_phone_number_obj(phone_number):
